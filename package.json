@@ -27,18 +27,14 @@
   },
   "manifest": {
     "host_permissions": [
-      "https://*/*",
-      "http://*/*",
       "*://*.buff.163.com/*",
-      "*://*.youpin898.com/*"
+      "*://*.youpin898.com/*",
+      "*://*.c5game.com/*",
+      "*://*.steamcommunity.com/*"
     ],
     "permissions": [
       "tabs",
-      "background",
-      "storage",
-      "tabs",
-      "cookies",
-      "sidePanel"
+      "cookies"
     ]
   }
 }
