@@ -10,6 +10,8 @@
     "package": "plasmo package"
   },
   "dependencies": {
+    "@ant-design/cssinjs": "^1.18.4",
+    "antd": "^5.14.2",
     "plasmo": "0.84.2",
     "react": "18.2.0",
     "react-dom": "18.2.0"
@@ -25,7 +27,18 @@
   },
   "manifest": {
     "host_permissions": [
-      "https://*/*"
+      "https://*/*",
+      "http://*/*",
+      "*://*.buff.163.com/*",
+      "*://*.youpin898.com/*"
+    ],
+    "permissions": [
+      "tabs",
+      "background",
+      "storage",
+      "tabs",
+      "cookies",
+      "sidePanel"
     ]
   }
 }
