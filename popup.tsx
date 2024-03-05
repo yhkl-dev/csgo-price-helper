@@ -210,7 +210,7 @@ function IndexPopup() {
     }
   }
 
-  const SaveAndGetCookie = async () => {
+  const LoadData = async () => {
     setLoading(true)
     const uuGoodsInfo = await dealUUGoods()
     const buffGoodsInfo = await dealBuffGoods(goodsID)
@@ -237,7 +237,7 @@ function IndexPopup() {
             {goodsInfo.name}
             {/* <br /> {goodsInfo.market_hash_name} */}
           </h3>
-          <Button onClick={SaveAndGetCookie} type="primary">
+          <Button onClick={LoadData} type="primary">
             Click To Load
           </Button>
         </Space>
