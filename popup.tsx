@@ -15,6 +15,7 @@ import {
   getUURentPriceInfo,
   getUUwantToBuyPrice,
   getUUYPuserInfo,
+  isBuffPageURL,
   searchForExactNameId
 } from "~utils/goods"
 
@@ -94,7 +95,16 @@ function IndexPopup() {
   const [goodsInfo, setGoodsInfo] = useState<GoodsInfo>({})
   const [buffGoodsItem, setBuffGoodsItem] = useState<BuffGoodsItem>({})
 
+  const [isBuffPage, setIsBuffPage] = useState<boolean>(false)
+
   useEffect(() => {
+    isBuffPageURL().then((res) => {
+      setIsBuffPage(res)
+      if (!res) {
+        return
+      }
+    })
+
     getBUFFGoodsID().then((res) => {
       setBUFFGoodsID(res)
       getCookies("https://buff.163.com", setBuffCookies).then(() => {
@@ -104,6 +114,9 @@ function IndexPopup() {
         })
       })
       getCookies("https://www.youpin898.com/", setUUCookies)
+      if (goodsID) {
+        LoadData()
+      }
     })
   }, [chrome])
 
@@ -218,6 +231,28 @@ function IndexPopup() {
     const c5GoodsInfo = await dealC5Goods()
     setTableData([steamGoodsInfo, buffGoodsInfo, uuGoodsInfo, c5GoodsInfo])
     setLoading(false)
+  }
+
+  if (!isBuffPage) {
+    return (
+      <ThemeProvider>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center"
+          }}>
+          Please open this extension with &nbsp;
+          <a
+            href="https://buff.163.com"
+            target="_blank"
+            rel="noopener noreferrer">
+            BUFF
+          </a>
+          &nbsp;page
+        </div>
+      </ThemeProvider>
+    )
   }
 
   return (

@@ -1,33 +1,41 @@
-This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+# CSGO price helper
 
-## Getting Started
+## Language Versions
 
-First, run the development server:
+- [中文版](./README_zh.md)
 
-```bash
-pnpm dev
-# or
-npm run dev
-```
+This extension is designed to help users compare product information across different game trading platforms, including price, rental information, and purchase requests. It primarily targets CS:GO (Counter-Strike: Global Offensive) game items, integrating data from multiple platforms to provide users with a convenient way to compare and view information.
 
-Open your browser and load the appropriate development build. For example, if you are developing for the chrome browser, using manifest v3, use: `build/chrome-mv3-dev`.
+## Key Features
 
-You can start editing the popup by modifying `popup.tsx`. It should auto-update as you make changes. To add an options page, simply add a `options.tsx` file to the root of the project, with a react component default exported. Likewise to add a content page, add a `content.ts` file to the root of the project, importing some module and do some logic, then reload the extension on your browser.
+- **Platform Support**: Currently supports trading platforms including Steam, BUFF, UUYP, and C5.
+- **Product Information Display**: Displays the selling price, rental price, and purchase price of the selected product on different platforms.
+- **Direct Links**: Provides direct links to the specific product pages on each platform for quick access by the user.
+- **Real-time Data**: Retrieves real-time product data through the APIs of each platform.
+- **User-friendly Interface**: A simple and clear interface design allows users to easily use this extension.
 
-For further guidance, [visit our Documentation](https://docs.plasmo.com/)
+## How to Use
 
-## Making production build
+1. Install this extension in a supported browser.
+2. Open the BUFF website (https://buff.163.com) and navigate to a specific CS:GO product page.
+3. Click the browser extension icon to activate the extension interface.
+4. The extension will automatically load the current product's information on other platforms and display it in the extension interface.
+5. Click on any platform's link to directly jump to that platform's product page.
 
-Run the following:
+## Extension Installation Address
 
-```bash
-pnpm build
-# or
-npm run build
-```
+You can install this extension from the Chrome Web Store via the following link: [CSGO Price Helper](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf)
 
-This should create a production bundle for your extension, ready to be zipped and published to the stores.
+## Notes
 
-## Submit to the webstores
+- Please ensure your browser allows the extension to access webpage data for it to function properly.
+- The extension's data update depends on the APIs of each platform. If an API of a platform changes or becomes unavailable, it may affect some functionalities of the extension.
+- This extension is for personal use only and may not be used for any commercial purposes.
 
-The easiest way to deploy your Plasmo extension is to use the built-in [bpp](https://bpp.browser.market) GitHub action. Prior to using this action however, make sure to build your extension and upload the first version to the store to establish the basic credentials. Then, simply follow [this setup instruction](https://docs.plasmo.com/framework/workflows/submit) and you should be on your way for automated submission!
+## Development Information
+
+This extension is developed using the React framework and designed with the Ant Design component library. All data is obtained through official APIs to ensure accuracy and timeliness.
+
+## Contributions
+
+If you have any suggestions or improvements for this extension, feel free to submit an Issue or Pull Request on GitHub.

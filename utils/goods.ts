@@ -57,6 +57,15 @@ export const getSteamGoodsInfo = async (
   return goodsInfo
 }
 
+export const isBuffPageURL = async (): Promise<boolean> => {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  })
+  const { host } = new URL(tab.url)
+  return host === "buff.163.com"
+}
+
 export const getBUFFGoodsID = async (): Promise<string> => {
   const [tab] = await chrome.tabs.query({
     active: true,
