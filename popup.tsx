@@ -1,9 +1,15 @@
-import type { TableProps } from "antd"
-import { Space, Table } from "antd"
-import Button from "antd/es/button"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
 import { useEffect, useState } from "react"
 
-import { ThemeProvider } from "~theme"
+import { Button } from "~@/components/ui/button"
 import {
   getBUFFGoodsID,
   getBUFFGoodsInfo,
@@ -18,13 +24,12 @@ import {
   isBuffPageURL,
   searchForExactNameId
 } from "~utils/goods"
+import type { BuffGoodsItem, DataType, GoodsInfo } from "~utils/types"
 
 import c5Data from "./c5/string_730.json"
 import uuData from "./uuyp/730.json"
 
-import "./popup.css"
-
-import type { BuffGoodsItem, DataType, GoodsInfo } from "~utils/types"
+import "./style.css"
 
 const construcGoodsURL = (
   plaform: string,
@@ -45,42 +50,21 @@ const construcGoodsURL = (
   }
 }
 
-const columns: TableProps<DataType>["columns"] = [
+const columns = [
   {
     title: "平台",
-    dataIndex: "Platform",
-    key: "Platform",
-    render: (text: string, record: DataType) => {
-      const url = construcGoodsURL(
-        record.Platform,
-        record.GoodsID,
-        record.MarkingHashName
-      )
-      return <a href={url}>{record.Platform}</a>
-    }
+    key: "Platform"
   },
   {
     title: "出售",
-    dataIndex: "Sell",
     key: "Sell"
   },
   {
     title: "出租",
-    dataIndex: "Rent",
-    key: "Rent",
-    render: (text: string, record: DataType) =>
-      record.Rent.LeaseUnitPrice !== "" ? (
-        <>
-          <div>短租: {record.Rent.LeaseUnitPrice} 天</div>
-          <div>长租: {record.Rent.LongLeaseUnitPrice} 天</div>
-        </>
-      ) : (
-        <>/</>
-      )
+    key: "Rent"
   },
   {
     title: "求购",
-    dataIndex: "WantToBuy",
     key: "WantToBuy"
   }
 ]
@@ -118,7 +102,7 @@ function IndexPopup() {
         LoadData()
       }
     })
-  }, [chrome])
+  }, [])
 
   const dealUUGoods = async (): Promise<DataType> => {
     const tokenSting = JSON.stringify(
@@ -235,56 +219,97 @@ function IndexPopup() {
 
   if (!isBuffPage) {
     return (
-      <ThemeProvider>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
-          }}>
-          Please open this extension with &nbsp;
-          <a
-            href="https://buff.163.com"
-            target="_blank"
-            rel="noopener noreferrer">
-            BUFF
-          </a>
-          &nbsp;page
-        </div>
-      </ThemeProvider>
+      <div className="flex justify-center items-center h-screen">
+        Please open this extension with &nbsp;
+        <a
+          href="https://buff.163.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-700">
+          BUFF
+        </a>
+        &nbsp;page
+      </div>
     )
   }
 
   return (
-    <ThemeProvider>
-      <div
-        style={{
-          flexDirection: "column",
-          padding: 16
-        }}>
-        <Space>
-          <img
-            src={goodsInfo.icon_url}
-            alt={goodsInfo.name}
-            width="35"
-            height="35"></img>
-          <h3>
-            {goodsInfo.name}
-            {/* <br /> {goodsInfo.market_hash_name} */}
-          </h3>
-          <Button onClick={LoadData} type="primary">
-            Click To Load
-          </Button>
-        </Space>
-        <Table
-          style={{ width: "100%" }}
-          columns={columns}
-          dataSource={tableData}
-          pagination={false}
-          loading={loading}
+    <div className="flex flex-col p-4 justify-center items-center">
+      <div className="flex space-x-4 items-center">
+        <img
+          src={goodsInfo.icon_url}
+          alt={goodsInfo.name}
+          className="w-12 h-12 rounded-full"
         />
+        <h3 className="text-lg font-semibold text-gray-800">
+          {goodsInfo.name}
+        </h3>
+        <Button
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm transition duration-150 ease-in-out"
+          onClick={LoadData}>
+          点击加载
+        </Button>
       </div>
-    </ThemeProvider>
+      {loading ? (
+        <div className="flex justify-center items-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <Table className="min-w-full leading-normal">
+          <TableCaption className="text-xs p-5 text-center">
+            各个平台实时价格
+          </TableCaption>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column, key) => (
+                <TableHead
+                  key={key}
+                  className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                  {column.title}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tableData.map((data, index) => (
+              <TableRow key={index} className="hover:bg-gray-100">
+                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  <a
+                    href={construcGoodsURL(
+                      data.Platform,
+                      data.GoodsID,
+                      data.MarkingHashName
+                    )}
+                    className="text-blue-500 hover:text-blue-800">
+                    {data.Platform}
+                  </a>
+                </TableCell>
+                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {data.Sell}
+                </TableCell>
+                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {data.Rent.LeaseUnitPrice !== "" ? (
+                    <>
+                      <div className="text-green-600">
+                        短租: {data.Rent.LeaseUnitPrice} 天
+                      </div>
+                      <div className="text-blue-600">
+                        长租: {data.Rent.LongLeaseUnitPrice} 天
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-gray-500">/</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
+                  {data.WantToBuy}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
   )
 }
 

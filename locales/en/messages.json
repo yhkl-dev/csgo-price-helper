@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "CSGO Price Helper",
+    "description": "Name of the extension."
+  },
+  "extensionDescription": {
+    "message": "An CSGO Price Helper",
+    "description": "Description of the extension."
+  }
+}

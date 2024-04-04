@@ -28,11 +28,11 @@ export const searchForExactNameId = (searchTerm: string): string => {
     if (steamData.hasOwnProperty(key)) {
       const item = steamData[key]
       if (item.en_name === searchTerm) {
-        return item.name_id // 直接返回匹配的name_id
+        return item.name_id
       }
     }
   }
-  return null // 如果没有找到匹配项，返回null
+  return null
 }
 
 export const getSteamGoodsInfo = async (

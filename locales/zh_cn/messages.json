@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "CSGO饰品价格助手",
+    "description": "Name of the extension."
+  },
+  "extensionDescription": {
+    "message": "一个帮助用户在在同一个页面查看同一个饰品在不同网站的价格的插件",
+    "description": "Description of the extension."
+  }
+}
