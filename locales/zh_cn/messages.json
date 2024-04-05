@@ -6,5 +6,33 @@
   "extensionDescription": {
     "message": "一个帮助用户在在同一个页面查看同一个饰品在不同网站的价格的插件",
     "description": "Description of the extension."
+  },
+  "platform": {
+    "message": "平台",
+    "description": ""
+  },
+  "sell": {
+    "message": "出售",
+    "description": ""
+  },
+  "rent": {
+    "message": "出租",
+    "description": ""
+  },
+  "wantToBuy": {
+    "message": "求购",
+    "description": ""
+  },
+  "longTerm": {
+    "message": "长租",
+    "description": ""
+  },
+  "shortTerm": {
+    "message": "短租",
+    "description": ""
+  },
+  "day": {
+    "message": "天",
+    "description": ""
   }
 }

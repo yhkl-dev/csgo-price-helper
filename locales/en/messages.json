@@ -6,5 +6,33 @@
   "extensionDescription": {
     "message": "An CSGO Price Helper",
     "description": "Description of the extension."
+  },
+  "platform": {
+    "message": "Platform",
+    "description": ""
+  },
+  "sell": {
+    "message": "Sell",
+    "description": ""
+  },
+  "rent": {
+    "message": "Rent",
+    "description": ""
+  },
+  "wantToBuy": {
+    "message": "Want To Buy",
+    "description": ""
+  },
+  "longTerm": {
+    "message": "long-term",
+    "description": ""
+  },
+  "shortTerm": {
+    "message": "short-term",
+    "description": ""
+  },
+  "day": {
+    "message": "day",
+    "description": ""
   }
 }

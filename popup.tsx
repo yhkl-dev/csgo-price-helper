@@ -1,7 +1,6 @@
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -9,19 +8,17 @@ import {
 } from "@/components/ui/table"
 import { useEffect, useState } from "react"
 
-import { Button } from "~@/components/ui/button"
+import { sendToBackground } from "@plasmohq/messaging"
+
 import {
-  getBUFFGoodsID,
   getBUFFGoodsInfo,
   getBUFFwantToBuyPrice,
   getC5GoodsInfo,
-  getCookies,
   getSteamGoodsInfo,
   getUUPriceInfo,
   getUURentPriceInfo,
   getUUwantToBuyPrice,
   getUUYPuserInfo,
-  isBuffPageURL,
   searchForExactNameId
 } from "~utils/goods"
 import type { BuffGoodsItem, DataType, GoodsInfo } from "~utils/types"
@@ -32,85 +29,107 @@ import uuData from "./uuyp/730.json"
 import "./style.css"
 
 const construcGoodsURL = (
-  plaform: string,
+  platform: string,
   goodsID: string,
   market_hash_name: string
 ): string => {
-  switch (plaform) {
-    case "Steam":
-      return `https://steamcommunity.com/market/listings/730/${market_hash_name}`
-    case "BUFF":
-      return `https://buff.163.com/goods/${goodsID}`
-    case "UUYP":
-      return `https://www.youpin898.com/goodInfo?id=${goodsID}`
-    case "C5":
-      return `https://www.c5game.com/csgo/${goodsID}`
-    default:
-      return ""
+  const urls = {
+    Steam: `https://steamcommunity.com/market/listings/730/${market_hash_name}`,
+    BUFF: `https://buff.163.com/goods/${goodsID}`,
+    UUYP: `https://www.youpin898.com/goodInfo?id=${goodsID}`,
+    C5: `https://www.c5game.com/csgo/${goodsID}`
   }
+  return urls[platform] || ""
 }
 
 const columns = [
   {
-    title: "平台",
+    title: chrome.i18n.getMessage("platform"),
     key: "Platform"
   },
   {
-    title: "出售",
+    title: chrome.i18n.getMessage("sell"),
     key: "Sell"
   },
   {
-    title: "出租",
+    title: chrome.i18n.getMessage("rent"),
     key: "Rent"
   },
   {
-    title: "求购",
+    title: chrome.i18n.getMessage("wantToBuy"),
     key: "WantToBuy"
   }
 ]
 
 function IndexPopup() {
   const [loading, setLoading] = useState<boolean>(false)
-  const [goodsID, setBUFFGoodsID] = useState<string>("")
-  const [tableData, setTableData] = useState<DataType[]>([])
-
-  const [buffCookies, setBuffCookies] = useState<chrome.cookies.Cookie[]>([])
-  const [uuCookies, setUUCookies] = useState<chrome.cookies.Cookie[]>([])
-  const [goodsInfo, setGoodsInfo] = useState<GoodsInfo>({})
-  const [buffGoodsItem, setBuffGoodsItem] = useState<BuffGoodsItem>({})
-
   const [isBuffPage, setIsBuffPage] = useState<boolean>(false)
+  const [tableData, setTableData] = useState<DataType[]>([])
+  const [goodsInfo, setGoodsInfo] = useState<GoodsInfo>({})
+  const [lang, setLang] = useState([])
+
+  const fetchCookies = async (
+    url: string
+  ): Promise<chrome.cookies.Cookie[]> => {
+    const cookies = await sendToBackground({
+      name: "get-cookies",
+      body: {
+        url
+      }
+    })
+    return cookies as chrome.cookies.Cookie[]
+  }
+
+  const getGoodsInfo = async (buffGoodsId: string) => {
+    const buffCookies = await fetchCookies("https://buff.163.com")
+    const buffGoods = await getBUFFGoodsInfo(buffGoodsId, buffCookies)
+    const wantToBuyPrice = await getBUFFwantToBuyPrice(buffGoodsId, buffCookies)
+    return {
+      goodsInfo: buffGoods.data.goods_infos[buffGoodsId],
+      sellPrice: buffGoods.data.items[0].price,
+      wantToBuyPrice: wantToBuyPrice
+    }
+  }
+
+  const load = async () => {
+    const res = await sendToBackground({
+      name: "get-page-info"
+    })
+    const isBuffPage = res.isBuffPage
+    setIsBuffPage(isBuffPage)
+    setLoading(true)
+    if (isBuffPage) {
+      const buffres = await getGoodsInfo(res.buffGoodsId)
+      setGoodsInfo(buffres.goodsInfo)
+      const tableData = await Promise.all([
+        dealBuffGoods(
+          res.buffGoodsId,
+          goodsInfo.market_hash_name,
+          buffres.sellPrice,
+          buffres.wantToBuyPrice
+        ),
+        dealSteamGoodsInfo(goodsInfo.market_hash_name),
+        dealUUGoods(goodsInfo.market_hash_name),
+        dealC5Goods(goodsInfo.market_hash_name)
+      ])
+      setTableData(tableData)
+    }
+    setLoading(false)
+  }
 
   useEffect(() => {
-    isBuffPageURL().then((res) => {
-      setIsBuffPage(res)
-      if (!res) {
-        return
-      }
-    })
-
-    getBUFFGoodsID().then((res) => {
-      setBUFFGoodsID(res)
-      getCookies("https://buff.163.com", setBuffCookies).then(() => {
-        getBUFFGoodsInfo(res, buffCookies).then((goods) => {
-          setGoodsInfo(goods.data.goods_infos[res])
-          setBuffGoodsItem(goods.data.items[0])
-        })
-      })
-      getCookies("https://www.youpin898.com/", setUUCookies)
-      if (goodsID) {
-        LoadData()
-      }
-    })
+    langG()
+    load()
   }, [])
 
-  const dealUUGoods = async (): Promise<DataType> => {
+  const dealUUGoods = async (market_hash_name: string): Promise<DataType> => {
+    const uuCookies = await fetchCookies("https://www.youpin898.com/")
     const tokenSting = JSON.stringify(
       uuCookies.find((cookie) => cookie.name === "token")
     )
     if (!tokenSting) {
       return {
-        MarkingHashName: goodsInfo.market_hash_name,
+        MarkingHashName: market_hash_name,
         GoodsID: "",
         Platform: "UUYP",
         Sell: "Please Login",
@@ -122,7 +141,7 @@ function IndexPopup() {
       }
     }
     const parsedToken = JSON.parse(tokenSting)
-    const uugoodsID = uuData[goodsInfo.market_hash_name]
+    const uugoodsID = uuData[market_hash_name]
     const uuuserId = await getUUYPuserInfo(parsedToken)
     const uuLowestPriceData = await getUUPriceInfo(
       parsedToken,
@@ -133,7 +152,7 @@ function IndexPopup() {
     const rentPrice = await getUURentPriceInfo(parsedToken, uuuserId, uugoodsID)
     const wantToBuy = await getUUwantToBuyPrice(parsedToken, uugoodsID)
     return {
-      MarkingHashName: goodsInfo.market_hash_name,
+      MarkingHashName: market_hash_name,
       GoodsID: uugoodsID,
       Platform: "UUYP",
       Sell: uuLowestPriceData,
@@ -145,12 +164,12 @@ function IndexPopup() {
     }
   }
 
-  const dealSteamGoodsInfo = async () => {
-    const nameId = searchForExactNameId(goodsInfo.market_hash_name)
+  const dealSteamGoodsInfo = async (market_hash_name: string) => {
+    const nameId = searchForExactNameId(market_hash_name)
     try {
       const res = await getSteamGoodsInfo(nameId)
       return {
-        MarkingHashName: goodsInfo.market_hash_name,
+        MarkingHashName: market_hash_name,
         GoodsID: nameId,
         Platform: "Steam",
         Sell: res.sell_order_price.split(" ")[1],
@@ -162,7 +181,7 @@ function IndexPopup() {
       }
     } catch (error) {
       return {
-        MarkingHashName: goodsInfo.market_hash_name,
+        MarkingHashName: market_hash_name,
         GoodsID: nameId,
         Platform: "Steam",
         Sell: "network error",
@@ -175,14 +194,17 @@ function IndexPopup() {
     }
   }
 
-  const dealBuffGoods = async (goodsID: string) => {
-    const wantToBuyPrice = await getBUFFwantToBuyPrice(goodsID, buffCookies)
+  const dealBuffGoods = async (
+    goodsId: string,
+    market_hash_name: string,
+    sellPrice: string,
+    wantToBuyPrice: string
+  ) => {
     return {
-      GoodsID: goodsID,
-      MarkingHashName: goodsInfo.market_hash_name,
-
+      GoodsID: goodsId,
+      MarkingHashName: market_hash_name,
       Platform: "BUFF",
-      Sell: buffGoodsItem.price,
+      Sell: sellPrice,
       Rent: {
         LeaseUnitPrice: "",
         LongLeaseUnitPrice: ""
@@ -191,12 +213,12 @@ function IndexPopup() {
     }
   }
 
-  const dealC5Goods = async () => {
-    const c5GoodsID = c5Data[goodsInfo.market_hash_name]
+  const dealC5Goods = async (market_hash_name: string) => {
+    const c5GoodsID = c5Data[market_hash_name]
     const price = await getC5GoodsInfo(c5GoodsID)
     return {
       GoodsID: c5GoodsID,
-      MarkingHashName: goodsInfo.market_hash_name,
+      MarkingHashName: market_hash_name,
       Platform: "C5",
       Sell: price,
       Rent: {
@@ -206,15 +228,9 @@ function IndexPopup() {
       WantToBuy: "/"
     }
   }
-
-  const LoadData = async () => {
-    setLoading(true)
-    const uuGoodsInfo = await dealUUGoods()
-    const buffGoodsInfo = await dealBuffGoods(goodsID)
-    const steamGoodsInfo = await dealSteamGoodsInfo()
-    const c5GoodsInfo = await dealC5Goods()
-    setTableData([steamGoodsInfo, buffGoodsInfo, uuGoodsInfo, c5GoodsInfo])
-    setLoading(false)
+  const langG = async () => {
+    const res = await chrome.i18n.getAcceptLanguages()
+    setLang(res)
   }
 
   if (!isBuffPage) {
@@ -234,7 +250,7 @@ function IndexPopup() {
   }
 
   return (
-    <div className="flex flex-col p-4 justify-center items-center">
+    <div className="flex flex-col p-4 justify-center items-center w-[500px]">
       <div className="flex space-x-4 items-center">
         <img
           src={goodsInfo.icon_url}
@@ -242,13 +258,10 @@ function IndexPopup() {
           className="w-12 h-12 rounded-full"
         />
         <h3 className="text-lg font-semibold text-gray-800">
-          {goodsInfo.name}
+          {lang.indexOf("zh") !== -1
+            ? goodsInfo.name
+            : goodsInfo.market_hash_name}
         </h3>
-        <Button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm transition duration-150 ease-in-out"
-          onClick={LoadData}>
-          点击加载
-        </Button>
       </div>
       {loading ? (
         <div className="flex justify-center items-center">
@@ -256,9 +269,6 @@ function IndexPopup() {
         </div>
       ) : (
         <Table className="min-w-full leading-normal">
-          <TableCaption className="text-xs p-5 text-center">
-            各个平台实时价格
-          </TableCaption>
           <TableHeader>
             <TableRow>
               {columns.map((column, key) => (
@@ -291,10 +301,14 @@ function IndexPopup() {
                   {data.Rent.LeaseUnitPrice !== "" ? (
                     <>
                       <div className="text-green-600">
-                        短租: {data.Rent.LeaseUnitPrice} 天
+                        {chrome.i18n.getMessage("longTerm")}:{" "}
+                        {data.Rent.LeaseUnitPrice}{" "}
+                        {chrome.i18n.getMessage("day")}
                       </div>
                       <div className="text-blue-600">
-                        长租: {data.Rent.LongLeaseUnitPrice} 天
+                        {chrome.i18n.getMessage("shortTerm")}:{" "}
+                        {data.Rent.LongLeaseUnitPrice}{" "}
+                        {chrome.i18n.getMessage("day")}
                       </div>
                     </>
                   ) : (

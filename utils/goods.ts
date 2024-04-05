@@ -1,5 +1,3 @@
-import type { Dispatch, SetStateAction } from "react"
-
 import steamData from "../steam/730.json"
 import type { C5GoodsResponse, SteamGoodsResponse } from "./types"
 
@@ -20,7 +18,10 @@ export const getC5GoodsInfo = async (goodsID: string) => {
     throw new Error("Network response was not ok")
   }
   const goodsInfo = (await response.json()) as C5GoodsResponse
-  return goodsInfo.data.list[0].price
+  if (goodsInfo.data) {
+    return goodsInfo.data.list[0].price
+  }
+  return ""
 }
 
 export const searchForExactNameId = (searchTerm: string): string => {
@@ -55,24 +56,6 @@ export const getSteamGoodsInfo = async (
   }
   const goodsInfo = (await response.json()) as SteamGoodsResponse
   return goodsInfo
-}
-
-export const isBuffPageURL = async (): Promise<boolean> => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  })
-  const { host } = new URL(tab.url)
-  return host === "buff.163.com"
-}
-
-export const getBUFFGoodsID = async (): Promise<string> => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  })
-  const { pathname } = new URL(tab.url)
-  return pathname.split("/")[2]
 }
 
 function convertCookiesToString(cookies: chrome.cookies.Cookie[]): string {
@@ -117,15 +100,6 @@ export const getBUFFGoodsInfo = async (
 
   const goodsInfo = await goodsResponse.json()
   return goodsInfo
-}
-
-export const getCookies = async (
-  url: string,
-  callback: Dispatch<SetStateAction<chrome.cookies.Cookie[]>>
-) => {
-  chrome.cookies.getAll({ url: url }, function (cookies) {
-    callback(cookies)
-  })
 }
 
 export const getUUYPuserInfo = async (token: {
@@ -184,7 +158,11 @@ export const getUUPriceInfo = async (
     )
 
     const commodityListData = await commodityListResponse.json()
-    return commodityListData.Data.CommodityList[0].Price
+
+    if (commodityListData.Data) {
+      return commodityListData.Data.CommodityList[0].Price
+    }
+    return commodityListData.msg
   } catch (error) {
     console.error(error)
     return error.message
@@ -225,7 +203,10 @@ export const getUURentPriceInfo = async (
     )
 
     const commodityListData = await commodityListResponse.json()
-    return commodityListData.Data.CommodityList[0]
+    if (commodityListData.Data) {
+      return commodityListData.Data.CommodityList[0]
+    }
+    return ""
   } catch (error) {
     console.error(error)
     return error.message
@@ -261,7 +242,11 @@ export const getUUwantToBuyPrice = async (
     )
 
     const res = await response.json()
-    return res.data.response[0].unitPrice / 100
+
+    if (res.data.response.length !== 0 && res.data.response[0].unitPrice) {
+      return res.data.response[0].unitPrice / 100
+    }
+    return ""
   } catch (error) {
     console.error(error)
     return error.message
