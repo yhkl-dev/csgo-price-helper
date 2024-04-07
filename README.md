@@ -16,7 +16,10 @@ This extension is designed to help users compare product information across diff
 
 ## How to Use
 
-1. Install this extension in a supported browser.
+1. Install this extension on the [Chrome Web Store](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf).
+
+   [![Chrome Web Store](readme/get-chrome.png)](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf)
+
 2. Open the BUFF website (https://buff.163.com) and navigate to a specific CS:GO product page.
 3. Click the browser extension icon to activate the extension interface.
 4. The extension will automatically load the current product's information on other platforms and display it in the extension interface.
