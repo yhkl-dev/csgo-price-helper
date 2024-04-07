@@ -18,7 +18,6 @@ const handler: PlasmoMessaging.MessageHandler<
     currentWindow: true
   })
   const { host, pathname } = new URL(currentTab.url)
-  console.log(host, pathname)
   const isBuffPage = host === BUFFURL
   if (isBuffPage) {
     res.send({ isBuffPage: isBuffPage, buffGoodsId: pathname.split("/")[2] })

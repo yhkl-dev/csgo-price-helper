@@ -164,7 +164,6 @@ export const getUUPriceInfo = async (
     }
     return commodityListData.msg
   } catch (error) {
-    console.error(error)
     return error.message
   }
 }
@@ -208,7 +207,6 @@ export const getUURentPriceInfo = async (
     }
     return ""
   } catch (error) {
-    console.error(error)
     return error.message
   }
 }
@@ -248,7 +246,6 @@ export const getUUwantToBuyPrice = async (
     }
     return ""
   } catch (error) {
-    console.error(error)
     return error.message
   }
 }

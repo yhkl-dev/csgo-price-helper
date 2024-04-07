@@ -104,13 +104,13 @@ function IndexPopup() {
       const tableData = await Promise.all([
         dealBuffGoods(
           res.buffGoodsId,
-          goodsInfo.market_hash_name,
+          buffres.goodsInfo.market_hash_name,
           buffres.sellPrice,
           buffres.wantToBuyPrice
         ),
-        dealSteamGoodsInfo(goodsInfo.market_hash_name),
-        dealUUGoods(goodsInfo.market_hash_name),
-        dealC5Goods(goodsInfo.market_hash_name)
+        dealUUGoods(buffres.goodsInfo.market_hash_name),
+        dealSteamGoodsInfo(buffres.goodsInfo.market_hash_name),
+        dealC5Goods(buffres.goodsInfo.market_hash_name)
       ])
       setTableData(tableData)
     }
