@@ -21,6 +21,9 @@
 ## 插件安装地址
 
 您可以通过以下链接在Chrome Web Store安装此插件：[CSGO Price Helper](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf)
+.
+
+[![Chrome Web Store](readme/get-chrome.png)](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf)
 
 ## 注意事项
 
