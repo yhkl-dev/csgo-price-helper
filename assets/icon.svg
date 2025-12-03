@@ -1,0 +1,30 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <defs>
+        <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+
+    <!-- Main background - Blue gradient -->
+    <rect width="128" height="128" fill="url(#blueGrad)" rx="20" />
+
+    <!-- Price tag -->
+    <g transform="translate(32, 32)">
+        <path d="M 10 0 L 50 0 Q 60 0 60 10 L 60 25 Q 60 30 55 35 L 25 43 L 0 20 Q 0 0 10 0"
+            fill="white" opacity="0.9" />
+        <text x="30" y="30" font-family="Arial, sans-serif" font-size="25" font-weight="bold"
+            text-anchor="middle" fill="#3B82F6">$</text>
+    </g>
+
+    <!-- Comparison indicator -->
+    <g transform="translate(64, 85)" opacity="0.9">
+        <line x1="-12" y1="-4" x2="12" y2="-4" stroke="white" stroke-width="2.5"
+            stroke-linecap="round" />
+        <line x1="-12" y1="0" x2="12" y2="0" stroke="white" stroke-width="2.5"
+            stroke-linecap="round" />
+        <line x1="-12" y1="4" x2="12" y2="4" stroke="white" stroke-width="2.5"
+            stroke-linecap="round" />
+    </g>
+</svg>
