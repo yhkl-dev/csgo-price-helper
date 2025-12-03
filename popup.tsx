@@ -21,307 +21,326 @@ import {
   getUUYPuserInfo,
   searchForExactNameId
 } from "~utils/goods"
-import type { BuffGoodsItem, DataType, GoodsInfo } from "~utils/types"
+import type { DataType, GoodsInfo } from "~utils/types"
 
 import c5Data from "./c5/string_730.json"
 import uuData from "./uuyp/730.json"
 
 import "./style.css"
 
-const construcGoodsURL = (
+const PLATFORM_URLS = {
+  Steam: (hashName: string) =>
+    `https://steamcommunity.com/market/listings/730/${hashName}`,
+  BUFF: (goodsId: string) => `https://buff.163.com/goods/${goodsId}`,
+  UUYP: (goodsId: string) => `https://www.youpin898.com/goodInfo?id=${goodsId}`,
+  C5: (goodsId: string) => `https://www.c5game.com/csgo/${goodsId}`
+} as const
+
+const PLATFORM_COOKIES_URLS = {
+  BUFF: "https://buff.163.com",
+  UUYP: "https://www.youpin898.com/"
+} as const
+
+const TABLE_COLUMNS = [
+  { title: chrome.i18n.getMessage("platform"), key: "Platform" },
+  { title: chrome.i18n.getMessage("sell"), key: "Sell" },
+  { title: chrome.i18n.getMessage("rent"), key: "Rent" },
+  { title: chrome.i18n.getMessage("wantToBuy"), key: "WantToBuy" }
+] as const
+
+const constructGoodsURL = (
   platform: string,
   goodsID: string,
-  market_hash_name: string
+  hashName: string
 ): string => {
-  const urls = {
-    Steam: `https://steamcommunity.com/market/listings/730/${market_hash_name}`,
-    BUFF: `https://buff.163.com/goods/${goodsID}`,
-    UUYP: `https://www.youpin898.com/goodInfo?id=${goodsID}`,
-    C5: `https://www.c5game.com/csgo/${goodsID}`
-  }
-  return urls[platform] || ""
+  const urlBuilder = PLATFORM_URLS[platform]
+  if (!urlBuilder) return ""
+  return platform === "Steam" ? urlBuilder(hashName) : urlBuilder(goodsID)
 }
 
-const columns = [
-  {
-    title: chrome.i18n.getMessage("platform"),
-    key: "Platform"
-  },
-  {
-    title: chrome.i18n.getMessage("sell"),
-    key: "Sell"
-  },
-  {
-    title: chrome.i18n.getMessage("rent"),
-    key: "Rent"
-  },
-  {
-    title: chrome.i18n.getMessage("wantToBuy"),
-    key: "WantToBuy"
+const createDataType = (
+  platform: string,
+  goodsId: string,
+  hashName: string,
+  sellPrice: string,
+  wantToBuyPrice: string,
+  rentPrice: { LeaseUnitPrice: string; LongLeaseUnitPrice: string } = {
+    LeaseUnitPrice: "",
+    LongLeaseUnitPrice: ""
   }
-]
+): DataType => ({
+  Platform: platform,
+  GoodsID: goodsId,
+  MarkingHashName: hashName,
+  Sell: sellPrice,
+  Rent: rentPrice,
+  WantToBuy: wantToBuyPrice
+})
 
+const fetchCookies = async (url: string): Promise<chrome.cookies.Cookie[]> => {
+  const cookies = await sendToBackground({
+    name: "get-cookies",
+    body: { url }
+  })
+  return cookies as chrome.cookies.Cookie[]
+}
+
+const fetchBuffData = async (buffGoodsId: string) => {
+  const cookies = await fetchCookies(PLATFORM_COOKIES_URLS.BUFF)
+  const [goodsResponse, wantToBuyPrice] = await Promise.all([
+    getBUFFGoodsInfo(buffGoodsId, cookies),
+    getBUFFwantToBuyPrice(buffGoodsId, cookies)
+  ])
+
+  if (!goodsResponse?.data?.items?.[0]?.price) {
+    throw new Error("Failed to fetch BUFF goods data")
+  }
+
+  return {
+    goodsInfo: goodsResponse.data.goods_infos[buffGoodsId],
+    sellPrice: goodsResponse.data.items[0].price,
+    wantToBuyPrice
+  }
+}
+
+const fetchUUYPData = async (
+  hashName: string
+): Promise<DataType> => {
+  try {
+    const cookies = await fetchCookies(PLATFORM_COOKIES_URLS.UUYP)
+    const token = cookies.find((cookie) => cookie.name === "token")
+
+    if (!token) {
+      return createDataType("UUYP", "", hashName, "Please Login", "")
+    }
+
+    const goodsId = uuData[hashName]
+    if (!goodsId) {
+      return createDataType("UUYP", "", hashName, "Not Found", "")
+    }
+
+    const userId = await getUUYPuserInfo(token)
+    if (!userId) {
+      return createDataType("UUYP", goodsId, hashName, "Auth Failed", "")
+    }
+
+    const [sellPrice, rentPrice, wantToBuyPrice] = await Promise.all([
+      getUUPriceInfo(token, userId, goodsId),
+      getUURentPriceInfo(token, userId, goodsId),
+      getUUwantToBuyPrice(token, goodsId)
+    ])
+
+    return createDataType(
+      "UUYP",
+      goodsId,
+      hashName,
+      sellPrice || "N/A",
+      wantToBuyPrice || "N/A",
+      {
+        LeaseUnitPrice: rentPrice?.LeaseUnitPrice || "",
+        LongLeaseUnitPrice: rentPrice?.LongLeaseUnitPrice || ""
+      }
+    )
+  } catch (err) {
+    return createDataType("UUYP", "", hashName, "Error", "")
+  }
+}
+
+const fetchSteamData = async (hashName: string): Promise<DataType> => {
+  const nameId = searchForExactNameId(hashName)
+  try {
+    if (!nameId) {
+      return createDataType("Steam", "", hashName, "Not Found", "/")
+    }
+    const res = await getSteamGoodsInfo(nameId)
+    const sellPrice = res.sell_order_price?.split(" ")?.[1] || "N/A"
+    const buyPrice = res.buy_order_price?.split(" ")?.[1] || "N/A"
+    return createDataType(
+      "Steam",
+      nameId,
+      hashName,
+      sellPrice,
+      buyPrice
+    )
+  } catch (error) {
+    return createDataType("Steam", "", hashName, "network error", "/")
+  }
+}
+
+const fetchC5Data = async (hashName: string): Promise<DataType> => {
+  try {
+    const goodsId = c5Data[hashName]
+    if (!goodsId) {
+      return createDataType("C5", "", hashName, "Not Found", "/")
+    }
+    const price = await getC5GoodsInfo(goodsId)
+    return createDataType("C5", goodsId, hashName, price || "N/A", "/")
+  } catch (error) {
+    return createDataType("C5", "", hashName, "Error", "/")
+  }
+}
+
+// ==================== 主组件 ====================
 function IndexPopup() {
   const [loading, setLoading] = useState<boolean>(false)
   const [isBuffPage, setIsBuffPage] = useState<boolean>(false)
   const [tableData, setTableData] = useState<DataType[]>([])
-  const [goodsInfo, setGoodsInfo] = useState<GoodsInfo>({})
-  const [lang, setLang] = useState([])
+  const [goodsInfo, setGoodsInfo] = useState<Partial<GoodsInfo>>({})
+  const [lang, setLang] = useState<string[]>([])
+  const [error, setError] = useState<string>("")
 
-  const fetchCookies = async (
-    url: string
-  ): Promise<chrome.cookies.Cookie[]> => {
-    const cookies = await sendToBackground({
-      name: "get-cookies",
-      body: {
-        url
-      }
-    })
-    return cookies as chrome.cookies.Cookie[]
-  }
+  const loadData = async () => {
+    const pageInfo = await sendToBackground({ name: "get-page-info" })
+    setIsBuffPage(pageInfo.isBuffPage)
 
-  const getGoodsInfo = async (buffGoodsId: string) => {
-    const buffCookies = await fetchCookies("https://buff.163.com")
-    const buffGoods = await getBUFFGoodsInfo(buffGoodsId, buffCookies)
-    const wantToBuyPrice = await getBUFFwantToBuyPrice(buffGoodsId, buffCookies)
-    return {
-      goodsInfo: buffGoods.data.goods_infos[buffGoodsId],
-      sellPrice: buffGoods.data.items[0].price,
-      wantToBuyPrice: wantToBuyPrice
-    }
-  }
+    if (!pageInfo.isBuffPage) return
 
-  const load = async () => {
-    const res = await sendToBackground({
-      name: "get-page-info"
-    })
-    const isBuffPage = res.isBuffPage
-    setIsBuffPage(isBuffPage)
     setLoading(true)
-    if (isBuffPage) {
-      const buffres = await getGoodsInfo(res.buffGoodsId)
-      setGoodsInfo(buffres.goodsInfo)
-      const tableData = await Promise.all([
-        dealBuffGoods(
-          res.buffGoodsId,
-          buffres.goodsInfo.market_hash_name,
-          buffres.sellPrice,
-          buffres.wantToBuyPrice
+    setError("")
+    try {
+      const buffData = await fetchBuffData(pageInfo.buffGoodsId)
+      setGoodsInfo(buffData.goodsInfo)
+
+      const hashName = buffData.goodsInfo.market_hash_name
+      const allPlatformData = await Promise.all([
+        Promise.resolve(
+          createDataType(
+            "BUFF",
+            pageInfo.buffGoodsId,
+            hashName,
+            buffData.sellPrice,
+            buffData.wantToBuyPrice
+          )
         ),
-        dealUUGoods(buffres.goodsInfo.market_hash_name),
-        dealSteamGoodsInfo(buffres.goodsInfo.market_hash_name),
-        dealC5Goods(buffres.goodsInfo.market_hash_name)
+        fetchUUYPData(hashName),
+        fetchSteamData(hashName),
+        fetchC5Data(hashName)
       ])
-      setTableData(tableData)
+      setTableData(allPlatformData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load data")
+      console.error("Error loading data:", err)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
+  }
+
+  const loadLanguage = async () => {
+    const languages = await chrome.i18n.getAcceptLanguages()
+    setLang(languages)
   }
 
   useEffect(() => {
-    langG()
-    load()
+    loadLanguage()
+    loadData()
   }, [])
-
-  const dealUUGoods = async (market_hash_name: string): Promise<DataType> => {
-    const uuCookies = await fetchCookies("https://www.youpin898.com/")
-    const tokenSting = JSON.stringify(
-      uuCookies.find((cookie) => cookie.name === "token")
-    )
-    if (!tokenSting) {
-      return {
-        MarkingHashName: market_hash_name,
-        GoodsID: "",
-        Platform: "UUYP",
-        Sell: "Please Login",
-        Rent: {
-          LeaseUnitPrice: "",
-          LongLeaseUnitPrice: ""
-        },
-        WantToBuy: ""
-      }
-    }
-    const parsedToken = JSON.parse(tokenSting)
-    const uugoodsID = uuData[market_hash_name]
-    const uuuserId = await getUUYPuserInfo(parsedToken)
-    const uuLowestPriceData = await getUUPriceInfo(
-      parsedToken,
-      uuuserId,
-      uugoodsID
-    )
-
-    const rentPrice = await getUURentPriceInfo(parsedToken, uuuserId, uugoodsID)
-    const wantToBuy = await getUUwantToBuyPrice(parsedToken, uugoodsID)
-    return {
-      MarkingHashName: market_hash_name,
-      GoodsID: uugoodsID,
-      Platform: "UUYP",
-      Sell: uuLowestPriceData,
-      Rent: {
-        LeaseUnitPrice: rentPrice.LeaseUnitPrice,
-        LongLeaseUnitPrice: rentPrice.LongLeaseUnitPrice
-      },
-      WantToBuy: wantToBuy
-    }
-  }
-
-  const dealSteamGoodsInfo = async (market_hash_name: string) => {
-    const nameId = searchForExactNameId(market_hash_name)
-    try {
-      const res = await getSteamGoodsInfo(nameId)
-      return {
-        MarkingHashName: market_hash_name,
-        GoodsID: nameId,
-        Platform: "Steam",
-        Sell: res.sell_order_price.split(" ")[1],
-        Rent: {
-          LeaseUnitPrice: "",
-          LongLeaseUnitPrice: ""
-        },
-        WantToBuy: res.buy_order_price.split(" ")[1]
-      }
-    } catch (error) {
-      return {
-        MarkingHashName: market_hash_name,
-        GoodsID: nameId,
-        Platform: "Steam",
-        Sell: "network error",
-        Rent: {
-          LeaseUnitPrice: "",
-          LongLeaseUnitPrice: ""
-        },
-        WantToBuy: "/"
-      }
-    }
-  }
-
-  const dealBuffGoods = async (
-    goodsId: string,
-    market_hash_name: string,
-    sellPrice: string,
-    wantToBuyPrice: string
-  ) => {
-    return {
-      GoodsID: goodsId,
-      MarkingHashName: market_hash_name,
-      Platform: "BUFF",
-      Sell: sellPrice,
-      Rent: {
-        LeaseUnitPrice: "",
-        LongLeaseUnitPrice: ""
-      },
-      WantToBuy: wantToBuyPrice
-    }
-  }
-
-  const dealC5Goods = async (market_hash_name: string) => {
-    const c5GoodsID = c5Data[market_hash_name]
-    const price = await getC5GoodsInfo(c5GoodsID)
-    return {
-      GoodsID: c5GoodsID,
-      MarkingHashName: market_hash_name,
-      Platform: "C5",
-      Sell: price,
-      Rent: {
-        LeaseUnitPrice: "",
-        LongLeaseUnitPrice: ""
-      },
-      WantToBuy: "/"
-    }
-  }
-  const langG = async () => {
-    const res = await chrome.i18n.getAcceptLanguages()
-    setLang(res)
-  }
 
   if (!isBuffPage) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Please open this extension with &nbsp;
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-gray-50 to-gray-100 gap-6 px-6">
+        <div className="text-center">
+          <div className="text-5xl mb-4">📦</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Wrong Page
+          </h2>
+          <p className="text-gray-600 text-sm leading-relaxed mb-6">
+            This extension only works on BUFF marketplace. Please navigate to BUFF to use it.
+          </p>
+        </div>
         <a
           href="https://buff.163.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700">
-          BUFF
+          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+          <span>🔗</span>
+          Open BUFF Marketplace
         </a>
-        &nbsp;page
+        <p className="text-xs text-gray-500 mt-2">
+          You can also search for BUFF in your browser
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col p-4 justify-center items-center w-[500px]">
-      <div className="flex space-x-4 items-center">
+    <div className="flex flex-col w-screen h-screen overflow-auto">
+      <div className="flex space-x-3 items-center mb-3 sticky top-0 bg-white z-10 px-4 py-3 border-b border-gray-200">
         <img
           src={goodsInfo.icon_url}
           alt={goodsInfo.name}
-          className="w-12 h-12 rounded-full"
+          className="w-12 h-12 rounded-lg shadow-md flex-shrink-0"
         />
-        <h3 className="text-lg font-semibold text-gray-800">
-          {lang.indexOf("zh") !== -1
-            ? goodsInfo.name
-            : goodsInfo.market_hash_name}
+        <h3 className="text-base font-bold text-gray-800 truncate">
+          {lang.includes("zh") ? goodsInfo.name : goodsInfo.market_hash_name}
         </h3>
       </div>
       {loading ? (
         <div className="flex justify-center items-center">
           <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
         </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <div className="text-3xl">⚠️</div>
+          <p className="text-red-600 font-semibold text-center">{error}</p>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all duration-200">
+            Retry
+          </button>
+        </div>
       ) : (
-        <Table className="min-w-full leading-normal">
-          <TableHeader>
-            <TableRow>
-              {columns.map((column, key) => (
-                <TableHead
-                  key={key}
-                  className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                  {column.title}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tableData.map((data, index) => (
-              <TableRow key={index} className="hover:bg-gray-100">
-                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                  <a
-                    href={construcGoodsURL(
-                      data.Platform,
-                      data.GoodsID,
-                      data.MarkingHashName
-                    )}
-                    className="text-blue-500 hover:text-blue-800">
-                    {data.Platform}
-                  </a>
-                </TableCell>
-                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                  {data.Sell}
-                </TableCell>
-                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                  {data.Rent.LeaseUnitPrice !== "" ? (
-                    <>
-                      <div className="text-green-600">
-                        {chrome.i18n.getMessage("longTerm")}:{" "}
-                        {data.Rent.LeaseUnitPrice}{" "}
-                        {chrome.i18n.getMessage("day")}
-                      </div>
-                      <div className="text-blue-600">
-                        {chrome.i18n.getMessage("shortTerm")}:{" "}
-                        {data.Rent.LongLeaseUnitPrice}{" "}
-                        {chrome.i18n.getMessage("day")}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-gray-500">/</span>
-                  )}
-                </TableCell>
-                <TableCell className="px-5 py-3 border-b border-gray-200 bg-white text-sm">
-                  {data.WantToBuy}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="flex-1 overflow-auto px-4 py-3">
+          <div className="w-full overflow-x-auto">
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-gray-200">
+                  {TABLE_COLUMNS.map((column, key) => (
+                    <TableHead
+                      key={key}
+                      className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-tight">
+                      {column.title}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tableData.map((data, index) => (
+                  <TableRow
+                    key={index}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <TableCell className="px-4 py-3">
+                      <a
+                        href={constructGoodsURL(
+                          data.Platform,
+                          data.GoodsID,
+                          data.MarkingHashName
+                        )}
+                        className="text-blue-600 hover:text-blue-700 font-medium">
+                        {data.Platform}
+                      </a>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 font-semibold text-gray-900">
+                      {data.Sell}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-gray-600">
+                      {data.Rent.LeaseUnitPrice ? (
+                        <div className="space-y-1 text-xs">
+                          <div>{chrome.i18n.getMessage("longTerm")}: {data.Rent.LeaseUnitPrice}</div>
+                          <div>{chrome.i18n.getMessage("shortTerm")}: {data.Rent.LongLeaseUnitPrice}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 font-semibold text-gray-900">
+                      {data.WantToBuy}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       )}
     </div>
   )

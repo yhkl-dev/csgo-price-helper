@@ -10,7 +10,6 @@
     "package": "plasmo package"
   },
   "dependencies": {
-    "@ant-design/cssinjs": "^1.18.4",
     "@plasmohq/messaging": "^0.6.2",
     "@radix-ui/react-slot": "^1.0.2",
     "class-variance-authority": "^0.7.0",
