@@ -34,5 +34,13 @@
   "day": {
     "message": "day",
     "description": ""
+  },
+  "notLoggedIn": {
+    "message": "Please Login to UUYP",
+    "description": "Prompt when user is not logged into UUYP"
+  },
+  "networkError": {
+    "message": "Network Error",
+    "description": "Prompt when network request fails"
   }
 }

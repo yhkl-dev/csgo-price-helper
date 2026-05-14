@@ -103,15 +103,19 @@ const fetchBuffData = async (buffGoodsId: string) => {
   }
 }
 
-const fetchUUYPData = async (
-  hashName: string
-): Promise<DataType> => {
+const fetchUUYPData = async (hashName: string): Promise<DataType> => {
   try {
     const cookies = await fetchCookies(PLATFORM_COOKIES_URLS.UUYP)
     const token = cookies.find((cookie) => cookie.name === "token")
 
     if (!token) {
-      return createDataType("UUYP", "", hashName, "Please Login", "")
+      return createDataType(
+        "UUYP",
+        "",
+        hashName,
+        chrome.i18n.getMessage("notLoggedIn"),
+        ""
+      )
     }
 
     const goodsId = uuData[hashName]
@@ -120,9 +124,6 @@ const fetchUUYPData = async (
     }
 
     const userId = await getUUYPuserInfo(token)
-    if (!userId) {
-      return createDataType("UUYP", goodsId, hashName, "Auth Failed", "")
-    }
 
     const [sellPrice, rentPrice, wantToBuyPrice] = await Promise.all([
       getUUPriceInfo(token, userId, goodsId),
@@ -142,7 +143,22 @@ const fetchUUYPData = async (
       }
     )
   } catch (err) {
-    return createDataType("UUYP", "", hashName, "Error", "")
+    if (err instanceof Error && err.message === "UUYP_NOT_LOGIN") {
+      return createDataType(
+        "UUYP",
+        "",
+        hashName,
+        chrome.i18n.getMessage("notLoggedIn"),
+        ""
+      )
+    }
+    return createDataType(
+      "UUYP",
+      "",
+      hashName,
+      chrome.i18n.getMessage("networkError"),
+      ""
+    )
   }
 }
 
@@ -155,13 +171,7 @@ const fetchSteamData = async (hashName: string): Promise<DataType> => {
     const res = await getSteamGoodsInfo(nameId)
     const sellPrice = res.sell_order_price?.split(" ")?.[1] || "N/A"
     const buyPrice = res.buy_order_price?.split(" ")?.[1] || "N/A"
-    return createDataType(
-      "Steam",
-      nameId,
-      hashName,
-      sellPrice,
-      buyPrice
-    )
+    return createDataType("Steam", nameId, hashName, sellPrice, buyPrice)
   } catch (error) {
     return createDataType("Steam", "", hashName, "network error", "/")
   }
@@ -240,11 +250,10 @@ function IndexPopup() {
       <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-gray-50 to-gray-100 gap-6 px-6">
         <div className="text-center">
           <div className="text-5xl mb-4">📦</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Wrong Page
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Wrong Page</h2>
           <p className="text-gray-600 text-sm leading-relaxed mb-6">
-            This extension only works on BUFF marketplace. Please navigate to BUFF to use it.
+            This extension only works on BUFF marketplace. Please navigate to
+            BUFF to use it.
           </p>
         </div>
         <a
@@ -325,8 +334,14 @@ function IndexPopup() {
                     <TableCell className="px-4 py-3 text-gray-600">
                       {data.Rent.LeaseUnitPrice ? (
                         <div className="space-y-1 text-xs">
-                          <div>{chrome.i18n.getMessage("longTerm")}: {data.Rent.LeaseUnitPrice}</div>
-                          <div>{chrome.i18n.getMessage("shortTerm")}: {data.Rent.LongLeaseUnitPrice}</div>
+                          <div>
+                            {chrome.i18n.getMessage("longTerm")}:{" "}
+                            {data.Rent.LeaseUnitPrice}
+                          </div>
+                          <div>
+                            {chrome.i18n.getMessage("shortTerm")}:{" "}
+                            {data.Rent.LongLeaseUnitPrice}
+                          </div>
                         </div>
                       ) : (
                         <span className="text-gray-400">—</span>

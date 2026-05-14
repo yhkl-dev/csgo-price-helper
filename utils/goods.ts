@@ -120,8 +120,10 @@ export const getUUYPuserInfo = async (token: {
   }
 
   const userInfoData = await userInfoResponse.json()
-  const userId = userInfoData.Data?.UserId
-  return userId
+  if (!userInfoData.Data?.UserId) {
+    throw new Error("UUYP_NOT_LOGIN")
+  }
+  return userInfoData.Data.UserId
 }
 
 export const getUUPriceInfo = async (
@@ -159,10 +161,13 @@ export const getUUPriceInfo = async (
 
     const commodityListData = await commodityListResponse.json()
 
+    if (commodityListData.Code === 401) {
+      throw new Error("UUYP_NOT_LOGIN")
+    }
     if (commodityListData.Data) {
       return commodityListData.Data.CommodityList[0].Price
     }
-    return commodityListData.msg
+    return ""
   } catch (error) {
     return error.message
   }
@@ -202,6 +207,9 @@ export const getUURentPriceInfo = async (
     )
 
     const commodityListData = await commodityListResponse.json()
+    if (commodityListData.Code === 401) {
+      throw new Error("UUYP_NOT_LOGIN")
+    }
     if (commodityListData.Data) {
       return commodityListData.Data.CommodityList[0]
     }
@@ -241,12 +249,18 @@ export const getUUwantToBuyPrice = async (
 
     const res = await response.json()
 
-    if (res.data.response.length !== 0 && res.data.response[0].unitPrice) {
+    if (res.code === 401) {
+      throw new Error("UUYP_NOT_LOGIN")
+    }
+    if (res.data?.response?.length > 0 && res.data.response[0].unitPrice) {
       return res.data.response[0].unitPrice / 100
     }
     return ""
   } catch (error) {
-    return error.message
+    if (error.message === "UUYP_NOT_LOGIN") {
+      throw error
+    }
+    return ""
   }
 }
 
