@@ -552,7 +552,7 @@ function IndexPopup() {
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-1.5 border-t border-border/50 shrink-0 text-right">
+          <div className="px-4 py-1.5 border-t border-border/50 shrink-0 flex items-center justify-between">
             <a
               href="https://github.com/yhkl-dev/csgo-price-helper/issues"
               target="_blank"
@@ -560,6 +560,9 @@ function IndexPopup() {
               className="text-xs text-muted-foreground hover:text-foreground transition-colors">
               {chrome.i18n.getMessage("feedback")}
             </a>
+            <span className="text-[10px] text-muted-foreground/50">
+              Built by yhkl &copy; 2026
+            </span>
           </div>
         </>
       )}
