@@ -295,7 +295,7 @@ const Skeleton = () => (
     {[1, 2, 3, 4].map((i) => (
       <div
         key={i}
-        className="flex items-center gap-6 py-3 border-b border-border/50 last:border-0">
+        className="flex items-center gap-6 py-2.5 border-b border-border/50 last:border-0">
         <div className="w-14 h-3.5 bg-muted rounded-sm animate-pulse" />
         <div className="w-16 h-3.5 bg-muted rounded-sm animate-pulse" />
         <div className="w-20 h-3.5 bg-muted rounded-sm animate-pulse" />
@@ -325,7 +325,7 @@ const ErrorState = ({
 const WrongPageState = () => (
   <div
     className="flex flex-col items-center justify-center gap-4 bg-background px-6"
-    style={{ width: 480, height: 360 }}>
+    style={{ width: 480, height: 420 }}>
     <p className="text-sm text-muted-foreground text-center leading-relaxed">
       {chrome.i18n.getMessage("wrongPageMessage")}
     </p>
@@ -460,9 +460,9 @@ function IndexPopup() {
   return (
     <div
       className="flex flex-col overflow-hidden bg-background"
-      style={{ width: 480, height: 360 }}>
+      style={{ width: 480, height: 420 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
         <img
           src={goodsInfo.icon_url}
           alt={goodsInfo.name}
@@ -492,7 +492,7 @@ function IndexPopup() {
                   {TABLE_COLUMNS.map((column) => (
                     <th
                       key={column.key}
-                      className="px-4 py-2.5 text-left text-xs font-normal text-muted-foreground">
+                      className="px-4 py-2 text-left text-xs font-normal text-muted-foreground">
                       {column.title}
                     </th>
                   ))}
@@ -510,7 +510,7 @@ function IndexPopup() {
                           ? "cursor-pointer hover:bg-muted group"
                           : "cursor-default"
                       }`}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2">
                         <div className="flex items-center gap-2.5">
                           <span
                             className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PLATFORM_COLORS[data.Platform] || "bg-gray-400"}`}
@@ -526,7 +526,7 @@ function IndexPopup() {
                         </div>
                       </td>
                       <td
-                        className={`px-4 py-3 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
+                        className={`px-4 py-2 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
                         {data.Sell === chrome.i18n.getMessage("notLoggedIn") ? (
                           <a
                             href="https://www.youpin898.com/"
@@ -539,7 +539,7 @@ function IndexPopup() {
                           formatPrice(data.Sell, data.Platform)
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <td className="px-4 py-2 text-sm text-muted-foreground">
                         {data.Rent.LeaseUnitPrice ? (
                           <div className="space-y-1 text-xs">
                             <div>
@@ -565,7 +565,7 @@ function IndexPopup() {
                           <span className="text-muted-foreground/40">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm tabular-nums text-foreground">
+                      <td className="px-4 py-2 text-sm tabular-nums text-foreground">
                         {data.WantToBuy ? (
                           formatPrice(data.WantToBuy, data.Platform)
                         ) : (
