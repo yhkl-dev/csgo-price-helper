@@ -13,26 +13,21 @@ import {
   getUUYPuserInfo,
   searchForExactNameId
 } from "~utils/goods"
+import {
+  CNY_PLATFORMS,
+  constructGoodsURL,
+  createDataType,
+  formatPrice,
+  isClickable,
+  parsePrice,
+  PLATFORM_URLS
+} from "~utils/helpers"
 import type { DataType, GoodsInfo } from "~utils/types"
 
 import c5Data from "./c5/string_730.json"
 import uuData from "./uuyp/730.json"
 
 import "./style.css"
-
-const PLATFORM_URLS = {
-  Steam: (hashName: string) =>
-    `https://steamcommunity.com/market/listings/730/${hashName}`,
-  BUFF: (goodsId: string) => `https://buff.163.com/goods/${goodsId}`,
-  UUYP: (goodsId: string) =>
-    `https://www.youpin898.com/market/goods-list?listType=20&templateId=${goodsId}&gameId=730`,
-  C5: (goodsId: string) => `https://www.c5game.com/csgo/${goodsId}`
-} as const
-
-const PLATFORM_COOKIES_URLS = {
-  BUFF: "https://buff.163.com",
-  UUYP: "https://www.youpin898.com/"
-} as const
 
 const PLATFORM_COLORS: Record<string, string> = {
   BUFF: "bg-orange-500",
@@ -41,70 +36,17 @@ const PLATFORM_COLORS: Record<string, string> = {
   C5: "bg-green-500"
 }
 
+const PLATFORM_COOKIES_URLS = {
+  BUFF: "https://buff.163.com",
+  UUYP: "https://www.youpin898.com/"
+} as const
+
 const TABLE_COLUMNS = [
   { title: chrome.i18n.getMessage("platform"), key: "Platform" },
   { title: chrome.i18n.getMessage("sell"), key: "Sell" },
   { title: chrome.i18n.getMessage("rent"), key: "Rent" },
   { title: chrome.i18n.getMessage("wantToBuy"), key: "WantToBuy" }
 ] as const
-
-const constructGoodsURL = (
-  platform: string,
-  goodsID: string,
-  hashName: string
-): string => {
-  const urlBuilder = PLATFORM_URLS[platform]
-  if (!urlBuilder || !goodsID) return ""
-  return platform === "Steam" ? urlBuilder(hashName) : urlBuilder(goodsID)
-}
-
-const createDataType = (
-  platform: string,
-  goodsId: string,
-  hashName: string,
-  sellPrice: string,
-  wantToBuyPrice: string,
-  rentPrice: { LeaseUnitPrice: string; LongLeaseUnitPrice: string } = {
-    LeaseUnitPrice: "",
-    LongLeaseUnitPrice: ""
-  }
-): DataType => ({
-  Platform: platform,
-  GoodsID: goodsId,
-  MarkingHashName: hashName,
-  Sell: sellPrice,
-  Rent: rentPrice,
-  WantToBuy: wantToBuyPrice
-})
-
-const parsePrice = (price: string): number | null => {
-  if (!price) return null
-  const invalidTokens = [
-    chrome.i18n.getMessage("notAvailable"),
-    chrome.i18n.getMessage("notFound"),
-    chrome.i18n.getMessage("dataError"),
-    "/"
-  ]
-  if (invalidTokens.includes(price)) return null
-  const clean = price.replace(/,/g, "")
-  const match = clean.match(/[\d.]+/)
-  return match ? parseFloat(match[0]) : null
-}
-
-const CNY_PLATFORMS = ["BUFF", "UUYP", "C5"]
-
-const formatPrice = (price: string, platform: string): string => {
-  if (!CNY_PLATFORMS.includes(platform)) return price
-  const num = parsePrice(price)
-  if (num === null) return price
-  return `¥ ${num.toLocaleString()}`
-}
-
-const isClickable = (data: DataType): boolean => {
-  if (!data.GoodsID) return false
-  if (data.Sell === chrome.i18n.getMessage("notFound")) return false
-  return true
-}
 
 // ==================== Data Fetching ====================
 

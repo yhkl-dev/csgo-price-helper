@@ -1,13 +1,16 @@
 {
   "name": "csgo-price-helper",
-  "displayName": "Csgo price helper",
+  "displayName": "CS:GO Price Helper",
   "version": "0.0.4",
   "description": "Compare CS:GO item prices across BUFF, UUYP, Steam, and C5",
   "author": "kaiyang939325@gmail.com",
   "scripts": {
     "dev": "SHARP_DIST_BASE_URL=https://npmmirror.com/mirrors/sharp-libvips/v8.14.5/ plasmo dev",
     "build": "SHARP_DIST_BASE_URL=https://npmmirror.com/mirrors/sharp-libvips/v8.14.5/ plasmo build",
-    "package": "SHARP_DIST_BASE_URL=https://npmmirror.com/mirrors/sharp-libvips/v8.14.5/ plasmo package"
+    "package": "SHARP_DIST_BASE_URL=https://npmmirror.com/mirrors/sharp-libvips/v8.14.5/ plasmo package",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@plasmohq/messaging": "^0.6.2",
@@ -27,11 +30,14 @@
     "@types/node": "20.11.5",
     "@types/react": "18.2.48",
     "@types/react-dom": "18.2.18",
+    "@vitest/coverage-v8": "^4.1.10",
     "autoprefixer": "^10.4.19",
+    "happy-dom": "^20.10.6",
     "postcss": "^8.4.38",
     "prettier": "3.2.4",
     "tailwindcss": "^3.4.3",
-    "typescript": "5.3.3"
+    "typescript": "5.3.3",
+    "vitest": "^4.1.10"
   },
   "manifest": {
     "default_locale": "en",
