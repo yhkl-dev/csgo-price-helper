@@ -510,68 +510,96 @@ function IndexPopup() {
                           ? "cursor-pointer hover:bg-muted group"
                           : "cursor-default"
                       }`}>
-                      <td className="px-4 py-2">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PLATFORM_COLORS[data.Platform] || "bg-gray-400"}`}
-                          />
-                          <span className="text-sm font-medium text-foreground">
-                            {data.Platform}
-                          </span>
-                          {clickable && (
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground text-xs ml-auto">
-                              →
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td
-                        className={`px-4 py-2 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
-                        {data.Sell === chrome.i18n.getMessage("notLoggedIn") ? (
-                          <a
-                            href="https://www.youpin898.com/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline underline-offset-2 hover:text-foreground transition-colors">
-                            {data.Sell}
-                          </a>
-                        ) : (
-                          formatPrice(data.Sell, data.Platform)
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-muted-foreground align-middle">
-                        {data.Rent.LeaseUnitPrice ? (
-                          <div className="space-y-1 text-xs">
-                            <div>
-                              {chrome.i18n.getMessage("shortTerm")}:{" "}
-                              <span className="tabular-nums">
-                                {formatPrice(
-                                  data.Rent.LeaseUnitPrice,
-                                  data.Platform
+                      {TABLE_COLUMNS.map((column) => {
+                        switch (column.key) {
+                          case "Platform":
+                            return (
+                              <td key={column.key} className="px-4 py-2">
+                                <div className="flex items-center gap-2.5">
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PLATFORM_COLORS[data.Platform] || "bg-gray-400"}`}
+                                  />
+                                  <span className="text-sm font-medium text-foreground">
+                                    {data.Platform}
+                                  </span>
+                                  {clickable && (
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground text-xs ml-auto">
+                                      →
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            )
+                          case "Sell":
+                            return (
+                              <td
+                                key={column.key}
+                                className={`px-4 py-2 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
+                                {data.Sell ===
+                                chrome.i18n.getMessage("notLoggedIn") ? (
+                                  <a
+                                    href="https://www.youpin898.com/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline underline-offset-2 hover:text-foreground transition-colors">
+                                    {data.Sell}
+                                  </a>
+                                ) : (
+                                  formatPrice(data.Sell, data.Platform)
                                 )}
-                              </span>
-                            </div>
-                            <div>
-                              {chrome.i18n.getMessage("longTerm")}:{" "}
-                              <span className="tabular-nums">
-                                {formatPrice(
-                                  data.Rent.LongLeaseUnitPrice,
-                                  data.Platform
+                              </td>
+                            )
+                          case "WantToBuy":
+                            return (
+                              <td
+                                key={column.key}
+                                className="px-4 py-2 text-sm tabular-nums text-foreground">
+                                {data.WantToBuy ? (
+                                  formatPrice(data.WantToBuy, data.Platform)
+                                ) : (
+                                  <span className="text-muted-foreground/40">
+                                    —
+                                  </span>
                                 )}
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/40">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-sm tabular-nums text-foreground">
-                        {data.WantToBuy ? (
-                          formatPrice(data.WantToBuy, data.Platform)
-                        ) : (
-                          <span className="text-muted-foreground/40">—</span>
-                        )}
-                      </td>
+                              </td>
+                            )
+                          case "Rent":
+                            return (
+                              <td
+                                key={column.key}
+                                className="px-4 py-2 text-sm text-muted-foreground align-middle">
+                                {data.Rent.LeaseUnitPrice ? (
+                                  <div className="space-y-1 text-xs">
+                                    <div>
+                                      {chrome.i18n.getMessage("shortTerm")}:{" "}
+                                      <span className="tabular-nums">
+                                        {formatPrice(
+                                          data.Rent.LeaseUnitPrice,
+                                          data.Platform
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      {chrome.i18n.getMessage("longTerm")}:{" "}
+                                      <span className="tabular-nums">
+                                        {formatPrice(
+                                          data.Rent.LongLeaseUnitPrice,
+                                          data.Platform
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground/40">
+                                    —
+                                  </span>
+                                )}
+                              </td>
+                            )
+                          default:
+                            return null
+                        }
+                      })}
                     </tr>
                   )
                 })}
