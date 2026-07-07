@@ -75,6 +75,10 @@
     "message": "错误",
     "description": "Displayed when an error occurs fetching data"
   },
+  "c5Unavailable": {
+    "message": "暂不可用",
+    "description": "Displayed when C5 platform is blocked by Cloudflare"
+  },
   "feedback": {
     "message": "反馈",
     "description": "Link to GitHub issues for feedback"

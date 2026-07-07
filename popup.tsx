@@ -5,7 +5,6 @@ import { sendToBackground } from "@plasmohq/messaging"
 import {
   getBUFFGoodsInfo,
   getBUFFwantToBuyPrice,
-  getC5GoodsInfo,
   getSteamGoodsInfo,
   getUUPriceInfo,
   getUURentPriceInfo,
@@ -193,38 +192,23 @@ const fetchSteamData = async (hashName: string): Promise<DataType> => {
 }
 
 const fetchC5Data = async (hashName: string): Promise<DataType> => {
-  try {
-    const goodsId = c5Data[hashName]
-    console.log("[C5] hashName:", hashName, "→ goodsId:", goodsId)
-    if (!goodsId) {
-      console.warn("[C5] goodsId not found for hashName:", hashName)
-      return createDataType(
-        "C5",
-        "",
-        hashName,
-        chrome.i18n.getMessage("notFound"),
-        "/"
-      )
-    }
-    const price = await getC5GoodsInfo(goodsId)
-    console.log("[C5] price result:", price)
-    return createDataType(
-      "C5",
-      goodsId,
-      hashName,
-      price || chrome.i18n.getMessage("notAvailable"),
-      "/"
-    )
-  } catch (error) {
-    console.error("[C5] fetchC5Data error:", error)
+  const goodsId = c5Data[hashName]
+  if (!goodsId) {
     return createDataType(
       "C5",
       "",
       hashName,
-      chrome.i18n.getMessage("dataError"),
+      chrome.i18n.getMessage("notFound"),
       "/"
     )
   }
+  return createDataType(
+    "C5",
+    goodsId,
+    hashName,
+    chrome.i18n.getMessage("c5Unavailable"),
+    "/"
+  )
 }
 
 // ==================== Sub-Components ====================

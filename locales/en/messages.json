@@ -75,6 +75,10 @@
     "message": "Error",
     "description": "Displayed when an error occurs fetching data"
   },
+  "c5Unavailable": {
+    "message": "Unavailable",
+    "description": "Displayed when C5 platform is blocked by Cloudflare"
+  },
   "feedback": {
     "message": "Feedback",
     "description": "Link to GitHub issues for feedback"
