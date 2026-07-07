@@ -6,6 +6,7 @@ import {
   getBUFFGoodsInfo,
   getBUFFwantToBuyPrice,
   getC5BatchPrice,
+  getC5MaxBuyPrice,
   getSteamGoodsInfo,
   getUUPriceInfo,
   getUURentPriceInfo,
@@ -222,8 +223,9 @@ const fetchC5Data = async (
       )
     }
 
-    const priceStr = String(item.price)
-    return createDataType("C5", item.itemId, hashName, priceStr, "/")
+    const sellPrice = String(item.price)
+    const buyPrice = await getC5MaxBuyPrice(apiKey, item.itemId)
+    return createDataType("C5", item.itemId, hashName, sellPrice, buyPrice)
   } catch (error) {
     console.error("[C5] fetchC5Data error:", error)
     return createDataType(

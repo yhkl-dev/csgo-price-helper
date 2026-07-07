@@ -315,3 +315,19 @@ export const getC5BatchPrice = async (
 
   return (await response.json()) as C5BatchPriceResponse
 }
+
+export const getC5MaxBuyPrice = async (
+  appKey: string,
+  itemId: string
+): Promise<string> => {
+  const url = `https://openapi.c5game.com/merchant/purchase/v1/max-price?itemId=${itemId}&app-key=${appKey}`
+
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error(`C5 buy price API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data.maxPrice || ""
+}
