@@ -300,24 +300,18 @@ function IndexPopup() {
   const [c5ApiKey, setC5ApiKey] = useState<string>("")
   const [c5KeyInput, setC5KeyInput] = useState<string>("")
 
-  const loadC5ApiKey = async () => {
-    const stored = await chrome.storage.local.get("c5ApiKey")
-    if (stored.c5ApiKey) {
-      setC5ApiKey(stored.c5ApiKey as string)
-      setC5KeyInput(stored.c5ApiKey as string)
-    }
-  }
-
   const saveC5ApiKey = async (key: string) => {
     setC5ApiKey(key)
     await chrome.storage.local.set({ c5ApiKey: key })
   }
 
-  const loadData = async () => {
+  const loadData = async (c5Key?: string) => {
     const pageInfo = await sendToBackground({ name: "get-page-info" })
     setIsBuffPage(pageInfo.isBuffPage)
 
     if (!pageInfo.isBuffPage) return
+
+    const apiKey = c5Key ?? c5ApiKey
 
     setLoading(true)
     setError("")
@@ -338,7 +332,7 @@ function IndexPopup() {
         ),
         fetchUUYPData(hashName),
         fetchSteamData(hashName),
-        fetchC5Data(hashName, c5ApiKey)
+        fetchC5Data(hashName, apiKey)
       ])
       setTableData(allPlatformData)
     } catch (err) {
@@ -358,9 +352,15 @@ function IndexPopup() {
   }
 
   useEffect(() => {
-    loadLanguage()
-    loadC5ApiKey()
-    loadData()
+    const init = async () => {
+      loadLanguage()
+      const stored = await chrome.storage.local.get("c5ApiKey")
+      const key = (stored.c5ApiKey as string) || ""
+      setC5ApiKey(key)
+      setC5KeyInput(key)
+      loadData(key)
+    }
+    init()
   }, [])
 
   const priceStats = useMemo(() => {
@@ -540,7 +540,7 @@ function IndexPopup() {
               <button
                 onClick={() => {
                   saveC5ApiKey(c5KeyInput)
-                  loadData()
+                  loadData(c5KeyInput)
                 }}
                 className="h-7 px-3 text-xs bg-foreground text-background rounded hover:opacity-80 transition-opacity shrink-0">
                 {chrome.i18n.getMessage("save")}
