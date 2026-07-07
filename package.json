@@ -45,6 +45,7 @@
       "*://*.buff.163.com/*",
       "*://*.youpin898.com/*",
       "*://*.c5game.com/*",
+      "*://*.igxe.cn/*",
       "*://*.steamcommunity.com/*"
     ],
     "permissions": [

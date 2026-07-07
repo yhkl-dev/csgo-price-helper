@@ -337,6 +337,17 @@ export const getC5MaxBuyPrice = async (
   return String(data.data?.maxPrice ?? "")
 }
 
+async function igxeBackgroundFetch(url: string): Promise<unknown> {
+  const result = await sendToBackground({
+    name: "igxe-fetch",
+    body: { url }
+  })
+  if (!result.ok) {
+    throw new Error(`IGXE API error: ${result.status}`)
+  }
+  return result.data
+}
+
 export interface IgxeSellResponse {
   succ: boolean
   d_list: { unit_price: string }[]
@@ -344,19 +355,7 @@ export interface IgxeSellResponse {
 
 export const getIgxeSellPrice = async (productId: string): Promise<string> => {
   const url = `https://www.igxe.cn/product/trade/730/${productId}`
-
-  const response = await fetch(url, {
-    headers: {
-      "x-requested-with": "XMLHttpRequest",
-      accept: "*/*"
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`IGXE API error: ${response.status}`)
-  }
-
-  const data = (await response.json()) as IgxeSellResponse
+  const data = (await igxeBackgroundFetch(url)) as IgxeSellResponse
   if (data.succ && data.d_list.length > 0) {
     return data.d_list[0].unit_price
   }
@@ -365,19 +364,10 @@ export const getIgxeSellPrice = async (productId: string): Promise<string> => {
 
 export const getIgxeBuyPrice = async (productId: string): Promise<string> => {
   const url = `https://www.igxe.cn/purchase/get_product_purchases?product_id=${productId}`
-
-  const response = await fetch(url, {
-    headers: {
-      "x-requested-with": "XMLHttpRequest",
-      accept: "*/*"
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`IGXE buy API error: ${response.status}`)
+  const data = (await igxeBackgroundFetch(url)) as {
+    succ: boolean
+    datas: { datas: { unit_price: string }[] }
   }
-
-  const data = await response.json()
   if (data.succ && data.datas?.datas?.length > 0) {
     return data.datas.datas[0].unit_price
   }
@@ -395,19 +385,7 @@ export const getIgxeLeasePrice = async (
   productId: string
 ): Promise<{ LeaseUnitPrice: string; LongLeaseUnitPrice: string }> => {
   const url = `https://www.igxe.cn/api/v2/lease/trade-list/730/${productId}?sort_rule=3&sort=3`
-
-  const response = await fetch(url, {
-    headers: {
-      "x-requested-with": "XMLHttpRequest",
-      accept: "*/*"
-    }
-  })
-
-  if (!response.ok) {
-    throw new Error(`IGXE lease API error: ${response.status}`)
-  }
-
-  const data = (await response.json()) as IgxeLeaseResponse
+  const data = (await igxeBackgroundFetch(url)) as IgxeLeaseResponse
   if (data.status && data.data?.rows?.length > 0) {
     return {
       LeaseUnitPrice: data.data.rows[0].unit_price,
