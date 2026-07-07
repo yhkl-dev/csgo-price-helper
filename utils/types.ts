@@ -202,3 +202,20 @@ export interface BuyOrderTable {
   price: string
   quantity: string
 }
+
+export interface C5BatchPriceResponse {
+  success: boolean
+  data: Record<string, C5BatchPriceItem>
+  errorCode: number
+  errorMsg: string | null
+  errorData: unknown
+  errorCodeStr: unknown
+}
+
+export interface C5BatchPriceItem {
+  itemId: string
+  marketHashName: string
+  price: number
+  count: number
+  website: string
+}

@@ -1,7 +1,7 @@
 import { sendToBackground } from "@plasmohq/messaging"
 
 import steamData from "../SteamTradingSite-ID-Mapper/steam/730.json"
-import type { SteamGoodsResponse } from "./types"
+import type { C5BatchPriceResponse, SteamGoodsResponse } from "./types"
 
 export const searchForExactNameId = (searchTerm: string): string => {
   for (const key in steamData) {
@@ -292,4 +292,26 @@ export const getUUwantToBuyPrice = async (
       throw error
     return ""
   }
+}
+
+export const getC5BatchPrice = async (
+  appKey: string,
+  marketHashNames: string[]
+): Promise<C5BatchPriceResponse> => {
+  const url = `https://openapi.c5game.com/merchant/product/price/batch?app-key=${appKey}`
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      appId: "730",
+      marketHashNames
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`C5 API error: ${response.status}`)
+  }
+
+  return (await response.json()) as C5BatchPriceResponse
 }

@@ -75,9 +75,9 @@
     "message": "Error",
     "description": "Displayed when an error occurs fetching data"
   },
-  "c5Unavailable": {
-    "message": "Unavailable",
-    "description": "Displayed when C5 platform is blocked by Cloudflare"
+  "c5NeedApiKey": {
+    "message": "Set API Key ⚙",
+    "description": "Prompt to set C5 API key"
   },
   "feedback": {
     "message": "Feedback",

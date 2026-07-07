@@ -5,6 +5,7 @@ import { sendToBackground } from "@plasmohq/messaging"
 import {
   getBUFFGoodsInfo,
   getBUFFwantToBuyPrice,
+  getC5BatchPrice,
   getSteamGoodsInfo,
   getUUPriceInfo,
   getUURentPriceInfo,
@@ -23,7 +24,6 @@ import {
 } from "~utils/helpers"
 import type { DataType, GoodsInfo } from "~utils/types"
 
-import c5Data from "./SteamTradingSite-ID-Mapper/c5/730.json"
 import uuData from "./SteamTradingSite-ID-Mapper/uuyp/730.json"
 
 import "./style.css"
@@ -191,24 +191,50 @@ const fetchSteamData = async (hashName: string): Promise<DataType> => {
   }
 }
 
-const fetchC5Data = async (hashName: string): Promise<DataType> => {
-  const goodsId = c5Data[hashName]
-  if (!goodsId) {
+const fetchC5Data = async (
+  hashName: string,
+  apiKey: string
+): Promise<DataType> => {
+  if (!apiKey) {
     return createDataType(
       "C5",
       "",
       hashName,
-      chrome.i18n.getMessage("notFound"),
+      chrome.i18n.getMessage("c5NeedApiKey"),
       "/"
     )
   }
-  return createDataType(
-    "C5",
-    goodsId,
-    hashName,
-    chrome.i18n.getMessage("c5Unavailable"),
-    "/"
-  )
+
+  try {
+    const response = await getC5BatchPrice(apiKey, [hashName])
+    if (!response.success) {
+      throw new Error(`C5 API error: ${response.errorCode}`)
+    }
+
+    const item = response.data[hashName]
+    if (!item || item.price === undefined) {
+      return createDataType(
+        "C5",
+        "",
+        hashName,
+        chrome.i18n.getMessage("notFound"),
+        "/"
+      )
+    }
+
+    // C5 price is in cents, divide by 100
+    const priceStr = (item.price / 100).toFixed(2)
+    return createDataType("C5", item.itemId, hashName, priceStr, "/")
+  } catch (error) {
+    console.error("[C5] fetchC5Data error:", error)
+    return createDataType(
+      "C5",
+      "",
+      hashName,
+      chrome.i18n.getMessage("dataError"),
+      "/"
+    )
+  }
 }
 
 // ==================== Sub-Components ====================
@@ -271,6 +297,22 @@ function IndexPopup() {
   const [goodsInfo, setGoodsInfo] = useState<Partial<GoodsInfo>>({})
   const [lang, setLang] = useState<string[]>([])
   const [error, setError] = useState<string>("")
+  const [c5ApiKey, setC5ApiKey] = useState<string>("")
+  const [showSettings, setShowSettings] = useState<boolean>(false)
+  const [c5KeyInput, setC5KeyInput] = useState<string>("")
+
+  const loadC5ApiKey = async () => {
+    const stored = await chrome.storage.local.get("c5ApiKey")
+    if (stored.c5ApiKey) {
+      setC5ApiKey(stored.c5ApiKey as string)
+      setC5KeyInput(stored.c5ApiKey as string)
+    }
+  }
+
+  const saveC5ApiKey = async (key: string) => {
+    setC5ApiKey(key)
+    await chrome.storage.local.set({ c5ApiKey: key })
+  }
 
   const loadData = async () => {
     const pageInfo = await sendToBackground({ name: "get-page-info" })
@@ -297,7 +339,7 @@ function IndexPopup() {
         ),
         fetchUUYPData(hashName),
         fetchSteamData(hashName),
-        fetchC5Data(hashName)
+        fetchC5Data(hashName, c5ApiKey)
       ])
       setTableData(allPlatformData)
     } catch (err) {
@@ -318,6 +360,7 @@ function IndexPopup() {
 
   useEffect(() => {
     loadLanguage()
+    loadC5ApiKey()
     loadData()
   }, [])
 
@@ -482,14 +525,45 @@ function IndexPopup() {
               </tbody>
             </table>
           </div>
+          {/* C5 API Settings */}
+          {showSettings && (
+            <div className="px-4 py-2 border-t border-border/50 shrink-0 flex items-center gap-2">
+              <span className="text-xs text-muted-foreground shrink-0">
+                C5 API Key
+              </span>
+              <input
+                type="text"
+                value={c5KeyInput}
+                onChange={(e) => setC5KeyInput(e.target.value)}
+                placeholder="app-key"
+                className="flex-1 h-7 px-2 text-xs border border-border rounded bg-background text-foreground focus:outline-none focus:border-foreground/30"
+              />
+              <button
+                onClick={() => {
+                  saveC5ApiKey(c5KeyInput)
+                  setShowSettings(false)
+                  loadData()
+                }}
+                className="h-7 px-2.5 text-xs bg-foreground text-background rounded hover:opacity-80 transition-opacity">
+                Save
+              </button>
+            </div>
+          )}
           <div className="px-4 py-1.5 border-t border-border/50 shrink-0 flex items-center justify-between">
-            <a
-              href="https://github.com/yhkl-dev/csgo-price-helper/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-              {chrome.i18n.getMessage("feedback")}
-            </a>
+            <div className="flex items-center gap-3">
+              <a
+                href="https://github.com/yhkl-dev/csgo-price-helper/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                {chrome.i18n.getMessage("feedback")}
+              </a>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                {showSettings ? "✕" : "⚙"}
+              </button>
+            </div>
             <span className="text-[10px] text-muted-foreground/50">
               Built by yhkl &copy; 2026
             </span>
