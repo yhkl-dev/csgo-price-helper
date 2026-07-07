@@ -24,8 +24,8 @@ import {
 } from "~utils/helpers"
 import type { DataType, GoodsInfo } from "~utils/types"
 
-import c5Data from "./c5/string_730.json"
-import uuData from "./uuyp/730.json"
+import c5Data from "./SteamTradingSite-ID-Mapper/c5/730.json"
+import uuData from "./SteamTradingSite-ID-Mapper/uuyp/730.json"
 
 import "./style.css"
 
