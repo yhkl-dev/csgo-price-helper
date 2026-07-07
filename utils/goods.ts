@@ -1,6 +1,6 @@
 import { sendToBackground } from "@plasmohq/messaging"
 
-import steamData from "../steam/730.json"
+import steamData from "../SteamTradingSite-ID-Mapper/steam/730.json"
 import type { C5GoodsResponse, SteamGoodsResponse } from "./types"
 
 export const getC5GoodsInfo = async (goodsID: string) => {
