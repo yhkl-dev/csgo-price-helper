@@ -10,7 +10,7 @@ export const PLATFORM_URLS = {
   IGXE: (goodsId: string) => `https://www.igxe.cn/product/730/${goodsId}`
 } as const
 
-export const CNY_PLATFORMS = ["BUFF", "UUYP", "C5", "IGXE"]
+export const CNY_PLATFORMS = ["BUFF", "UUYP", "C5", "IGXE", "Steam"]
 
 export const constructGoodsURL = (
   platform: string,

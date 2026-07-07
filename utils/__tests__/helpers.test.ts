@@ -69,8 +69,8 @@ describe("formatPrice", () => {
     expect(formatPrice("2500", "C5")).toBe("¥ 2,500")
   })
 
-  it("returns Steam price unchanged", () => {
-    expect(formatPrice("$12.34 USD", "Steam")).toBe("$12.34 USD")
+  it("formats Steam price with CNY prefix", () => {
+    expect(formatPrice("12.34", "Steam")).toBe("¥ 12.34")
   })
 
   it("returns original string when parsePrice returns null", () => {
@@ -184,11 +184,7 @@ describe("isClickable", () => {
 // ---- CNY_PLATFORMS ----
 
 describe("CNY_PLATFORMS", () => {
-  it("includes BUFF, UUYP, C5, IGXE", () => {
-    expect(CNY_PLATFORMS).toEqual(["BUFF", "UUYP", "C5", "IGXE"])
-  })
-
-  it("does not include Steam", () => {
-    expect(CNY_PLATFORMS).not.toContain("Steam")
+  it("includes BUFF, UUYP, C5, IGXE, Steam", () => {
+    expect(CNY_PLATFORMS).toEqual(["BUFF", "UUYP", "C5", "IGXE", "Steam"])
   })
 })
