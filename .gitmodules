@@ -1,0 +1,3 @@
+[submodule "SteamTradingSite-ID-Mapper"]
+	path = SteamTradingSite-ID-Mapper
+	url = git@github.com:EricZhu-42/SteamTradingSite-ID-Mapper.git
