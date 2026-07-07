@@ -1,3 +1,5 @@
+import { sendToBackground } from "@plasmohq/messaging"
+
 import steamData from "../steam/730.json"
 import type { C5GoodsResponse, SteamGoodsResponse } from "./types"
 
@@ -47,7 +49,7 @@ export const getSteamGoodsInfo = async (
   }
 
   const response = await fetch(
-    `https://steamcommunity.com/market/itemordershistogram?country=HK&currency=23&language=english&item_nameid=${goodsID}&two_factor=0&norender=1`,
+    `https://steamcommunity.com/market/itemordershistogram?country=CN&currency=23&language=english&item_nameid=${goodsID}&two_factor=0&norender=1`,
     requestOptions
   )
 
@@ -102,199 +104,213 @@ export const getBUFFGoodsInfo = async (
   return goodsInfo
 }
 
+const UUYP_API_BASE = "https://api.youpin898.com/api/homepage/pc/goods/market"
+const UUYP_SELL_URL = `${UUYP_API_BASE}/queryOnSaleCommodityList`
+const UUYP_RENT_URL = `${UUYP_API_BASE}/queryOnLeaseCommodityList`
+const UUYP_BUY_URL =
+  "https://api.youpin898.com/api/youpin/bff/trade/purchase/order/getTemplatePurchaseOrderListPC"
+
+interface UUYPDeviceInfo {
+  deviceId: string
+  deviceUk: string
+  uk: string
+}
+
+const UUYP_COMMON_HEADERS: Record<string, string> = {
+  "App-Version": "5.26.0",
+  AppVersion: "5.26.0",
+  appType: "1",
+  platform: "pc",
+  "secret-v": "h5_v1",
+  "content-type": "application/json",
+  "user-agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+}
+
+function decodeJWT(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".")
+    if (parts.length !== 3) return null
+    const payload = parts[1]
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    return JSON.parse(decoded)
+  } catch {
+    return null
+  }
+}
+
+async function uuypBackgroundFetch(
+  url: string,
+  headers: Record<string, string>,
+  body: string
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  return sendToBackground({
+    name: "uuyp-fetch",
+    body: { url, headers, body }
+  })
+}
+
+function getUUYPAuthHeaders(
+  token: string,
+  device?: UUYPDeviceInfo
+): Record<string, string> {
+  return {
+    ...UUYP_COMMON_HEADERS,
+    authorization: `Bearer ${token}`,
+    ...(device?.deviceId ? { deviceId: device.deviceId } : {}),
+    ...(device?.deviceUk ? { deviceUk: device.deviceUk } : {}),
+    ...(device?.uk ? { uk: device.uk } : {})
+  }
+}
+
 export const getUUYPuserInfo = async (token: {
   value: string
 }): Promise<string> => {
-  const userInfoResponse = await fetch(
-    "https://api.youpin898.com/api/user/Account/GetUserInfo",
-    {
-      headers: {
-        authorization: `Bearer ${token.value}`
-      },
-      method: "GET"
-    }
-  )
+  const jwt = decodeJWT(token.value)
 
-  if (!userInfoResponse.ok) {
-    throw new Error("Network response was not ok")
-  }
-
-  const userInfoData = await userInfoResponse.json()
-  if (!userInfoData.Data?.UserId) {
+  if (!jwt?.Id) {
     throw new Error("UUYP_NOT_LOGIN")
   }
-  return userInfoData.Data.UserId
+
+  if (jwt.exp && typeof jwt.exp === "number") {
+    const now = Math.floor(Date.now() / 1000)
+    if (jwt.exp < now) {
+      throw new Error("UUYP_NOT_LOGIN")
+    }
+  }
+
+  return String(jwt.Id)
 }
 
 export const getUUPriceInfo = async (
   token: { value: string },
-  userId: string,
-  goodsID: string
-): Promise<any> => {
+  _userId: string,
+  goodsID: string,
+  device?: UUYPDeviceInfo
+): Promise<string> => {
   try {
-    const raw = JSON.stringify({
+    const body = JSON.stringify({
+      gameId: "730",
+      listType: "10",
       templateId: goodsID,
-      pageSize: 10,
-      pageIndex: 1,
-      sortType: 1,
       listSortType: 1,
-      listType: 10,
-      userId: userId,
-      stickersIsSort: false,
-      stickers: {}
+      sortType: 0,
+      pageIndex: 1,
+      pageSize: 10
     })
 
-    const commodityListResponse = await fetch(
-      "https://api.youpin898.com/api/homepage/v2/es/commodity/GetCsGoPagedList",
-      {
-        headers: {
-          authorization: `Bearer ${token.value}`,
-          "content-type": "application/json",
-          "user-agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        },
-        body: raw,
-        method: "POST",
-        redirect: "follow"
-      }
+    const result = await uuypBackgroundFetch(
+      UUYP_SELL_URL,
+      getUUYPAuthHeaders(token.value, device),
+      body
     )
 
-    const commodityListData = await commodityListResponse.json()
-
-    if (commodityListData.Code === 401) {
+    const data = result.data as Record<string, unknown>
+    if (data.Code === 401 || data.code === 401) {
       throw new Error("UUYP_NOT_LOGIN")
     }
-    if (commodityListData.Data) {
-      return commodityListData.Data.CommodityList[0].Price
+
+    const sellList = data.Data
+    if (Array.isArray(sellList) && sellList.length > 0) {
+      const first = sellList[0] as Record<string, unknown>
+      return String(
+        first.Price ?? first.price ?? first.unitPrice ?? first.salePrice ?? ""
+      )
     }
+
     return ""
   } catch (error) {
-    return error.message
+    if (error instanceof Error && error.message === "UUYP_NOT_LOGIN")
+      throw error
+    return ""
   }
 }
 
 export const getUURentPriceInfo = async (
   token: { value: string },
-  userId: string,
-  goodsID: string
-): Promise<any> => {
+  _userId: string,
+  goodsID: string,
+  device?: UUYPDeviceInfo
+): Promise<{ LeaseUnitPrice: string; LongLeaseUnitPrice: string }> => {
   try {
-    const raw = JSON.stringify({
+    const body = JSON.stringify({
+      gameId: "730",
+      listType: "30",
       templateId: goodsID,
-      pageSize: 10,
-      pageIndex: 1,
-      sortType: 1,
       listSortType: 2,
-      listType: 30,
-      userId: userId,
-      stickersIsSort: false,
-      stickers: {}
+      sortType: 0,
+      pageIndex: 1,
+      pageSize: 10
     })
 
-    const commodityListResponse = await fetch(
-      "https://api.youpin898.com/api/homepage/v2/es/commodity/GetCsGoPagedList",
-      {
-        headers: {
-          authorization: `Bearer ${token.value}`,
-          "content-type": "application/json",
-          "user-agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        },
-        body: raw,
-        method: "POST",
-        redirect: "follow"
-      }
+    const result = await uuypBackgroundFetch(
+      UUYP_RENT_URL,
+      getUUYPAuthHeaders(token.value, device),
+      body
     )
 
-    const commodityListData = await commodityListResponse.json()
-    if (commodityListData.Code === 401) {
+    const data = result.data as Record<string, unknown>
+    if (data.Code === 401 || data.code === 401) {
       throw new Error("UUYP_NOT_LOGIN")
     }
-    if (commodityListData.Data) {
-      return commodityListData.Data.CommodityList[0]
+
+    const leaseList = data.Data
+    if (Array.isArray(leaseList) && leaseList.length > 0) {
+      const first = leaseList[0] as Record<string, unknown>
+      return {
+        LeaseUnitPrice: String(
+          first.LeaseUnitPrice || first.leaseUnitPrice || ""
+        ),
+        LongLeaseUnitPrice: String(
+          first.LongLeaseUnitPrice || first.longLeaseUnitPrice || ""
+        )
+      }
     }
-    return ""
+
+    return { LeaseUnitPrice: "", LongLeaseUnitPrice: "" }
   } catch (error) {
-    return error.message
+    if (error instanceof Error && error.message === "UUYP_NOT_LOGIN")
+      throw error
+    return { LeaseUnitPrice: "", LongLeaseUnitPrice: "" }
   }
 }
 
 export const getUUwantToBuyPrice = async (
-  token: {
-    value: string
-  },
-  goodsID: string
-) => {
+  token: { value: string },
+  goodsID: string,
+  device?: UUYPDeviceInfo
+): Promise<string> => {
   try {
-    const raw = JSON.stringify({
+    const body = JSON.stringify({
       templateId: goodsID,
       pageIndex: 1,
-      pageSize: 50
+      pageSize: 10
     })
 
-    const response = await fetch(
-      "https://api.youpin898.com/api/youpin/commodity/purchase/find",
-      {
-        headers: {
-          authorization: `Bearer ${token.value}`,
-          "content-type": "application/json",
-          "user-agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        },
-        body: raw,
-        method: "POST",
-        redirect: "follow"
-      }
+    const result = await uuypBackgroundFetch(
+      UUYP_BUY_URL,
+      getUUYPAuthHeaders(token.value, device),
+      body
     )
 
-    const res = await response.json()
-
-    if (res.code === 401) {
+    const data = result.data as Record<string, unknown>
+    if (data.Code === 401 || data.code === 401) {
       throw new Error("UUYP_NOT_LOGIN")
     }
-    if (res.data?.response?.length > 0 && res.data.response[0].unitPrice) {
-      return res.data.response[0].unitPrice / 100
+
+    const dataContainer = (data.data || data.Data) as Record<string, unknown>
+    const buyList =
+      dataContainer?.purchaseOrderResponseList || dataContainer?.response
+    if (Array.isArray(buyList) && buyList.length > 0) {
+      const first = buyList[0] as Record<string, unknown>
+      const price = first.purchasePrice || first.unitPrice
+      if (price) return String(price)
     }
+
     return ""
   } catch (error) {
-    if (error.message === "UUYP_NOT_LOGIN") {
+    if (error instanceof Error && error.message === "UUYP_NOT_LOGIN")
       throw error
-    }
     return ""
   }
-}
-
-export const getUUGoodsInfo = (
-  goodsID: string,
-  userId: string,
-  token: string,
-  callback
-) => {
-  const raw = JSON.stringify({
-    templateId: goodsID,
-    pageSize: 10,
-    pageIndex: 1,
-    sortType: 1,
-    listSortType: 1,
-    listType: 10,
-    userId: Number(userId),
-    stickersIsSort: false,
-    stickers: {}
-  })
-  fetch(
-    "https://api.youpin898.com/api/homepage/v2/es/commodity/GetCsGoPagedList",
-    {
-      headers: {
-        authorization: `Bearer ${token}`
-      },
-      body: raw,
-      method: "POST"
-    }
-  )
-    .then((response) => {
-      return response.json()
-    })
-    .then((res) => {
-      callback(res.Data.CommodityList[0])
-    })
 }

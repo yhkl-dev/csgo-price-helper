@@ -42,5 +42,41 @@
   "networkError": {
     "message": "Network Error",
     "description": "Prompt when network request fails"
+  },
+  "currencyNote": {
+    "message": "Prices in CNY (¥). Steam prices may vary by region.",
+    "description": "Currency note shown in the header"
+  },
+  "retry": {
+    "message": "Retry",
+    "description": "Retry button text"
+  },
+  "loadFailed": {
+    "message": "Failed to load data",
+    "description": "Generic data load error"
+  },
+  "wrongPageMessage": {
+    "message": "This extension works on BUFF marketplace pages. Navigate to a BUFF item page and try again.",
+    "description": "Message when user is not on a BUFF page"
+  },
+  "openBuffMarketplace": {
+    "message": "Open BUFF Marketplace →",
+    "description": "Link to open BUFF website"
+  },
+  "notFound": {
+    "message": "Not Found",
+    "description": "Displayed when item is not found on a platform"
+  },
+  "notAvailable": {
+    "message": "N/A",
+    "description": "Displayed when price data is not available"
+  },
+  "dataError": {
+    "message": "Error",
+    "description": "Displayed when an error occurs fetching data"
+  },
+  "feedback": {
+    "message": "Feedback",
+    "description": "Link to GitHub issues for feedback"
   }
 }
