@@ -224,7 +224,15 @@ const fetchC5Data = async (
     }
 
     const sellPrice = String(item.price)
-    const buyPrice = await getC5MaxBuyPrice(apiKey, item.itemId)
+
+    let buyPrice = "/"
+    try {
+      buyPrice = await getC5MaxBuyPrice(apiKey, item.itemId)
+      console.log("[C5] buy price result:", item.itemId, "→", buyPrice)
+    } catch (e) {
+      console.error("[C5] buy price fetch failed:", e)
+    }
+
     return createDataType("C5", item.itemId, hashName, sellPrice, buyPrice)
   } catch (error) {
     console.error("[C5] fetchC5Data error:", error)

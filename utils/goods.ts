@@ -321,13 +321,18 @@ export const getC5MaxBuyPrice = async (
   itemId: string
 ): Promise<string> => {
   const url = `https://openapi.c5game.com/merchant/purchase/v1/max-price?itemId=${itemId}&app-key=${appKey}`
+  console.log("[C5] buy request:", url)
 
   const response = await fetch(url)
+  console.log("[C5] buy response status:", response.status)
 
   if (!response.ok) {
+    const body = await response.text().catch(() => "")
+    console.error("[C5] buy response body:", body.slice(0, 300))
     throw new Error(`C5 buy price API error: ${response.status}`)
   }
 
   const data = await response.json()
-  return data.maxPrice || ""
+  console.log("[C5] buy response data:", JSON.stringify(data))
+  return String(data.maxPrice ?? "")
 }
