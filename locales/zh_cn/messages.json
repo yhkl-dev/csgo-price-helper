@@ -42,5 +42,41 @@
   "networkError": {
     "message": "网络错误",
     "description": "Prompt when network request fails"
+  },
+  "currencyNote": {
+    "message": "价格单位为人民币 (¥)，Steam 价格因区而异",
+    "description": "Currency note shown in the header"
+  },
+  "retry": {
+    "message": "重试",
+    "description": "Retry button text"
+  },
+  "loadFailed": {
+    "message": "数据加载失败",
+    "description": "Generic data load error"
+  },
+  "wrongPageMessage": {
+    "message": "此扩展仅适用于 BUFF 饰品页面，请前往 BUFF 商品页使用。",
+    "description": "Message when user is not on a BUFF page"
+  },
+  "openBuffMarketplace": {
+    "message": "打开 BUFF 市场 →",
+    "description": "Link to open BUFF website"
+  },
+  "notFound": {
+    "message": "未找到",
+    "description": "Displayed when item is not found on a platform"
+  },
+  "notAvailable": {
+    "message": "暂无",
+    "description": "Displayed when price data is not available"
+  },
+  "dataError": {
+    "message": "错误",
+    "description": "Displayed when an error occurs fetching data"
+  },
+  "feedback": {
+    "message": "反馈",
+    "description": "Link to GitHub issues for feedback"
   }
 }

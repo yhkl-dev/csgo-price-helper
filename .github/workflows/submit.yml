@@ -1,4 +1,4 @@
-name: "Submit to Web Store"
+name: "Build and Release"
 on:
   workflow_dispatch:
 
@@ -9,20 +9,31 @@ jobs:
       SHARP_DIST_BASE_URL: https://npmmirror.com/mirrors/sharp-libvips/v8.14.5/
     steps:
       - uses: actions/checkout@v4
+
       - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10.30.2
           run_install: true
+
       - name: Build the extension
         run: pnpm build
+
       - name: Package the extension into a zip artifact
         run: pnpm package
-      - name: Browser Platform Publish
-        uses: PlasmoHQ/bpp@v3
+
+      - name: Read version from package.json
+        id: version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          keys: ${{ secrets.SUBMIT_KEYS }}
-          artifact: build/chrome-mv3-prod.zip
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: v${{ steps.version.outputs.VERSION }}
+          files: build/chrome-mv3-prod.zip
+          generate_release_notes: true

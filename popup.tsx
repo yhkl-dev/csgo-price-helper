@@ -1,12 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { sendToBackground } from "@plasmohq/messaging"
 
@@ -32,7 +24,8 @@ const PLATFORM_URLS = {
   Steam: (hashName: string) =>
     `https://steamcommunity.com/market/listings/730/${hashName}`,
   BUFF: (goodsId: string) => `https://buff.163.com/goods/${goodsId}`,
-  UUYP: (goodsId: string) => `https://www.youpin898.com/goodInfo?id=${goodsId}`,
+  UUYP: (goodsId: string) =>
+    `https://www.youpin898.com/market/goods-list?listType=20&templateId=${goodsId}&gameId=730`,
   C5: (goodsId: string) => `https://www.c5game.com/csgo/${goodsId}`
 } as const
 
@@ -40,6 +33,13 @@ const PLATFORM_COOKIES_URLS = {
   BUFF: "https://buff.163.com",
   UUYP: "https://www.youpin898.com/"
 } as const
+
+const PLATFORM_COLORS: Record<string, string> = {
+  BUFF: "bg-orange-500",
+  UUYP: "bg-purple-500",
+  Steam: "bg-blue-500",
+  C5: "bg-green-500"
+}
 
 const TABLE_COLUMNS = [
   { title: chrome.i18n.getMessage("platform"), key: "Platform" },
@@ -54,7 +54,7 @@ const constructGoodsURL = (
   hashName: string
 ): string => {
   const urlBuilder = PLATFORM_URLS[platform]
-  if (!urlBuilder) return ""
+  if (!urlBuilder || !goodsID) return ""
   return platform === "Steam" ? urlBuilder(hashName) : urlBuilder(goodsID)
 }
 
@@ -76,6 +76,37 @@ const createDataType = (
   Rent: rentPrice,
   WantToBuy: wantToBuyPrice
 })
+
+const parsePrice = (price: string): number | null => {
+  if (!price) return null
+  const invalidTokens = [
+    chrome.i18n.getMessage("notAvailable"),
+    chrome.i18n.getMessage("notFound"),
+    chrome.i18n.getMessage("dataError"),
+    "/"
+  ]
+  if (invalidTokens.includes(price)) return null
+  const clean = price.replace(/,/g, "")
+  const match = clean.match(/[\d.]+/)
+  return match ? parseFloat(match[0]) : null
+}
+
+const CNY_PLATFORMS = ["BUFF", "UUYP", "C5"]
+
+const formatPrice = (price: string, platform: string): string => {
+  if (!CNY_PLATFORMS.includes(platform)) return price
+  const num = parsePrice(price)
+  if (num === null) return price
+  return `¥ ${num.toLocaleString()}`
+}
+
+const isClickable = (data: DataType): boolean => {
+  if (!data.GoodsID) return false
+  if (data.Sell === chrome.i18n.getMessage("notFound")) return false
+  return true
+}
+
+// ==================== Data Fetching ====================
 
 const fetchCookies = async (url: string): Promise<chrome.cookies.Cookie[]> => {
   const cookies = await sendToBackground({
@@ -106,7 +137,16 @@ const fetchBuffData = async (buffGoodsId: string) => {
 const fetchUUYPData = async (hashName: string): Promise<DataType> => {
   try {
     const cookies = await fetchCookies(PLATFORM_COOKIES_URLS.UUYP)
-    const token = cookies.find((cookie) => cookie.name === "token")
+
+    const TOKEN_NAMES = [
+      "uu_token",
+      "token",
+      "access_token",
+      "auth_token",
+      "jwt",
+      "authorization"
+    ]
+    const token = cookies.find((cookie) => TOKEN_NAMES.includes(cookie.name))
 
     if (!token) {
       return createDataType(
@@ -118,25 +158,39 @@ const fetchUUYPData = async (hashName: string): Promise<DataType> => {
       )
     }
 
+    const stored = await chrome.storage.local.get("uuypDevice")
+    const storedDevice = (stored?.uuypDevice as Record<string, string>) || {}
+    const device = {
+      deviceId: storedDevice.deviceId || "",
+      deviceUk: storedDevice.deviceUk || "",
+      uk: storedDevice.uk || ""
+    }
+
     const goodsId = uuData[hashName]
     if (!goodsId) {
-      return createDataType("UUYP", "", hashName, "Not Found", "")
+      return createDataType(
+        "UUYP",
+        "",
+        hashName,
+        chrome.i18n.getMessage("notFound"),
+        ""
+      )
     }
 
     const userId = await getUUYPuserInfo(token)
 
     const [sellPrice, rentPrice, wantToBuyPrice] = await Promise.all([
-      getUUPriceInfo(token, userId, goodsId),
-      getUURentPriceInfo(token, userId, goodsId),
-      getUUwantToBuyPrice(token, goodsId)
+      getUUPriceInfo(token, userId, goodsId, device),
+      getUURentPriceInfo(token, userId, goodsId, device),
+      getUUwantToBuyPrice(token, goodsId, device)
     ])
 
     return createDataType(
       "UUYP",
       goodsId,
       hashName,
-      sellPrice || "N/A",
-      wantToBuyPrice || "N/A",
+      sellPrice || chrome.i18n.getMessage("notAvailable"),
+      String(wantToBuyPrice || chrome.i18n.getMessage("notAvailable")),
       {
         LeaseUnitPrice: rentPrice?.LeaseUnitPrice || "",
         LongLeaseUnitPrice: rentPrice?.LongLeaseUnitPrice || ""
@@ -166,14 +220,33 @@ const fetchSteamData = async (hashName: string): Promise<DataType> => {
   const nameId = searchForExactNameId(hashName)
   try {
     if (!nameId) {
-      return createDataType("Steam", "", hashName, "Not Found", "/")
+      return createDataType(
+        "Steam",
+        "",
+        hashName,
+        chrome.i18n.getMessage("notFound"),
+        "/"
+      )
     }
     const res = await getSteamGoodsInfo(nameId)
-    const sellPrice = res.sell_order_price?.split(" ")?.[1] || "N/A"
-    const buyPrice = res.buy_order_price?.split(" ")?.[1] || "N/A"
+    const prefix = res.price_prefix || ""
+    const sellPrice =
+      prefix +
+      (res.sell_order_price?.split(" ")?.[1] ||
+        chrome.i18n.getMessage("notAvailable"))
+    const buyPrice =
+      prefix +
+      (res.buy_order_price?.split(" ")?.[1] ||
+        chrome.i18n.getMessage("notAvailable"))
     return createDataType("Steam", nameId, hashName, sellPrice, buyPrice)
   } catch (error) {
-    return createDataType("Steam", "", hashName, "network error", "/")
+    return createDataType(
+      "Steam",
+      "",
+      hashName,
+      chrome.i18n.getMessage("networkError"),
+      "/"
+    )
   }
 }
 
@@ -181,16 +254,86 @@ const fetchC5Data = async (hashName: string): Promise<DataType> => {
   try {
     const goodsId = c5Data[hashName]
     if (!goodsId) {
-      return createDataType("C5", "", hashName, "Not Found", "/")
+      return createDataType(
+        "C5",
+        "",
+        hashName,
+        chrome.i18n.getMessage("notFound"),
+        "/"
+      )
     }
     const price = await getC5GoodsInfo(goodsId)
-    return createDataType("C5", goodsId, hashName, price || "N/A", "/")
+    return createDataType(
+      "C5",
+      goodsId,
+      hashName,
+      price || chrome.i18n.getMessage("notAvailable"),
+      "/"
+    )
   } catch (error) {
-    return createDataType("C5", "", hashName, "Error", "/")
+    return createDataType(
+      "C5",
+      "",
+      hashName,
+      chrome.i18n.getMessage("dataError"),
+      "/"
+    )
   }
 }
 
-// ==================== 主组件 ====================
+// ==================== Sub-Components ====================
+
+const Skeleton = () => (
+  <div className="flex-1 px-4 py-2 space-y-0">
+    {[1, 2, 3, 4].map((i) => (
+      <div
+        key={i}
+        className="flex items-center gap-6 py-3 border-b border-border/50 last:border-0">
+        <div className="w-14 h-3.5 bg-muted rounded-sm animate-pulse" />
+        <div className="w-16 h-3.5 bg-muted rounded-sm animate-pulse" />
+        <div className="w-20 h-3.5 bg-muted rounded-sm animate-pulse" />
+        <div className="w-12 h-3.5 bg-muted rounded-sm animate-pulse" />
+      </div>
+    ))}
+  </div>
+)
+
+const ErrorState = ({
+  message,
+  onRetry
+}: {
+  message: string
+  onRetry: () => void
+}) => (
+  <div className="flex flex-col items-center justify-center gap-3 py-12">
+    <p className="text-sm text-muted-foreground">{message}</p>
+    <button
+      onClick={onRetry}
+      className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
+      {chrome.i18n.getMessage("retry")}
+    </button>
+  </div>
+)
+
+const WrongPageState = () => (
+  <div
+    className="flex flex-col items-center justify-center gap-4 bg-background px-6"
+    style={{ width: 480, height: 360 }}>
+    <p className="text-sm text-muted-foreground text-center leading-relaxed">
+      {chrome.i18n.getMessage("wrongPageMessage")}
+    </p>
+    <a
+      href="https://buff.163.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground transition-colors">
+      {chrome.i18n.getMessage("openBuffMarketplace")}
+    </a>
+  </div>
+)
+
+// ==================== Main Component ====================
+
 function IndexPopup() {
   const [loading, setLoading] = useState<boolean>(false)
   const [isBuffPage, setIsBuffPage] = useState<boolean>(false)
@@ -228,8 +371,11 @@ function IndexPopup() {
       ])
       setTableData(allPlatformData)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data")
-      console.error("Error loading data:", err)
+      setError(
+        err instanceof Error
+          ? err.message
+          : chrome.i18n.getMessage("loadFailed")
+      )
     } finally {
       setLoading(false)
     }
@@ -245,117 +391,180 @@ function IndexPopup() {
     loadData()
   }, [])
 
-  if (!isBuffPage) {
-    return (
-      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-gray-50 to-gray-100 gap-6 px-6">
-        <div className="text-center">
-          <div className="text-5xl mb-4">📦</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Wrong Page</h2>
-          <p className="text-gray-600 text-sm leading-relaxed mb-6">
-            This extension only works on BUFF marketplace. Please navigate to
-            BUFF to use it.
-          </p>
-        </div>
-        <a
-          href="https://buff.163.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105">
-          <span>🔗</span>
-          Open BUFF Marketplace
-        </a>
-        <p className="text-xs text-gray-500 mt-2">
-          You can also search for BUFF in your browser
-        </p>
-      </div>
+  const priceStats = useMemo(() => {
+    const sellPrices = tableData
+      .map((d) => ({ platform: d.Platform, price: parsePrice(d.Sell) }))
+      .filter((p) => p.price !== null)
+    if (sellPrices.length < 2) return { min: null, max: null }
+    const prices = sellPrices.map((p) => p.price!)
+    return {
+      minPlatform: sellPrices.find((p) => p.price === Math.min(...prices))!
+        .platform,
+      maxPlatform: sellPrices.find((p) => p.price === Math.max(...prices))!
+        .platform
+    }
+  }, [tableData])
+
+  const getSellPriceClass = (platform: string, price: string): string => {
+    const num = parsePrice(price)
+    if (num === null || !priceStats.minPlatform) return "text-foreground"
+    const allSame = priceStats.minPlatform === priceStats.maxPlatform
+    if (allSame) return "text-foreground"
+    if (platform === priceStats.minPlatform)
+      return "text-[hsl(var(--price-low))] font-semibold"
+    if (platform === priceStats.maxPlatform)
+      return "text-[hsl(var(--price-high))]"
+    return "text-foreground"
+  }
+
+  const handleRowClick = (data: DataType) => {
+    if (!isClickable(data)) return
+    const url = constructGoodsURL(
+      data.Platform,
+      data.GoodsID,
+      data.MarkingHashName
     )
+    if (url) window.open(url, "_blank")
+  }
+
+  if (!isBuffPage) {
+    return <WrongPageState />
   }
 
   return (
-    <div className="flex flex-col w-screen h-screen overflow-auto">
-      <div className="flex space-x-3 items-center mb-3 sticky top-0 bg-white z-10 px-4 py-3 border-b border-gray-200">
+    <div
+      className="flex flex-col overflow-hidden bg-background"
+      style={{ width: 480, height: 360 }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
         <img
           src={goodsInfo.icon_url}
           alt={goodsInfo.name}
-          className="w-12 h-12 rounded-lg shadow-md flex-shrink-0"
+          className="w-7 h-7 rounded-sm flex-shrink-0"
         />
-        <h3 className="text-base font-bold text-gray-800 truncate">
-          {lang.includes("zh") ? goodsInfo.name : goodsInfo.market_hash_name}
-        </h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium text-foreground truncate">
+            {lang.includes("zh") ? goodsInfo.name : goodsInfo.market_hash_name}
+          </h3>
+          <p className="text-[10px] text-muted-foreground/50 truncate">
+            {chrome.i18n.getMessage("currencyNote")}
+          </p>
+        </div>
       </div>
+
+      {/* Content */}
       {loading ? (
-        <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
+        <Skeleton />
       ) : error ? (
-        <div className="flex flex-col items-center justify-center gap-4 py-8">
-          <div className="text-3xl">⚠️</div>
-          <p className="text-red-600 font-semibold text-center">{error}</p>
-          <button
-            onClick={loadData}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all duration-200">
-            Retry
-          </button>
-        </div>
+        <ErrorState message={error} onRetry={loadData} />
       ) : (
-        <div className="flex-1 overflow-auto px-4 py-3">
-          <div className="w-full overflow-x-auto">
-            <Table className="w-full text-sm">
-              <TableHeader>
-                <TableRow className="border-b border-gray-200">
-                  {TABLE_COLUMNS.map((column, key) => (
-                    <TableHead
-                      key={key}
-                      className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-tight">
+        <>
+          <div className="flex-1 overflow-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {TABLE_COLUMNS.map((column) => (
+                    <th
+                      key={column.key}
+                      className="px-4 py-2.5 text-left text-xs font-normal text-muted-foreground">
                       {column.title}
-                    </TableHead>
+                    </th>
                   ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tableData.map((data, index) => (
-                  <TableRow
-                    key={index}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <TableCell className="px-4 py-3">
-                      <a
-                        href={constructGoodsURL(
-                          data.Platform,
-                          data.GoodsID,
-                          data.MarkingHashName
-                        )}
-                        className="text-blue-600 hover:text-blue-700 font-medium">
-                        {data.Platform}
-                      </a>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 font-semibold text-gray-900">
-                      {data.Sell}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-gray-600">
-                      {data.Rent.LeaseUnitPrice ? (
-                        <div className="space-y-1 text-xs">
-                          <div>
-                            {chrome.i18n.getMessage("longTerm")}:{" "}
-                            {data.Rent.LeaseUnitPrice}
-                          </div>
-                          <div>
-                            {chrome.i18n.getMessage("shortTerm")}:{" "}
-                            {data.Rent.LongLeaseUnitPrice}
-                          </div>
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.map((data) => {
+                  const clickable = isClickable(data)
+                  return (
+                    <tr
+                      key={data.Platform}
+                      onClick={() => handleRowClick(data)}
+                      className={`border-b border-border/50 last:border-0 transition-colors ${
+                        clickable
+                          ? "cursor-pointer hover:bg-muted group"
+                          : "cursor-default"
+                      }`}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PLATFORM_COLORS[data.Platform] || "bg-gray-400"}`}
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            {data.Platform}
+                          </span>
+                          {clickable && (
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground text-xs ml-auto">
+                              →
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 font-semibold text-gray-900">
-                      {data.WantToBuy}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </td>
+                      <td
+                        className={`px-4 py-3 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
+                        {data.Sell === chrome.i18n.getMessage("notLoggedIn") ? (
+                          <a
+                            href="https://www.youpin898.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2 hover:text-foreground transition-colors">
+                            {data.Sell}
+                          </a>
+                        ) : (
+                          formatPrice(data.Sell, data.Platform)
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {data.Rent.LeaseUnitPrice ? (
+                          <div className="space-y-1 text-xs">
+                            <div>
+                              {chrome.i18n.getMessage("shortTerm")}:{" "}
+                              <span className="tabular-nums">
+                                {formatPrice(
+                                  data.Rent.LeaseUnitPrice,
+                                  data.Platform
+                                )}
+                              </span>
+                            </div>
+                            <div>
+                              {chrome.i18n.getMessage("longTerm")}:{" "}
+                              <span className="tabular-nums">
+                                {formatPrice(
+                                  data.Rent.LongLeaseUnitPrice,
+                                  data.Platform
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm tabular-nums text-foreground">
+                        {data.WantToBuy ? (
+                          formatPrice(data.WantToBuy, data.Platform)
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+          <div className="px-4 py-1.5 border-t border-border/50 shrink-0 flex items-center justify-between">
+            <a
+              href="https://github.com/yhkl-dev/csgo-price-helper/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {chrome.i18n.getMessage("feedback")}
+            </a>
+            <span className="text-[10px] text-muted-foreground/50">
+              Built by yhkl &copy; 2026
+            </span>
+          </div>
+        </>
       )}
     </div>
   )
