@@ -334,5 +334,5 @@ export const getC5MaxBuyPrice = async (
 
   const data = await response.json()
   console.log("[C5] buy response data:", JSON.stringify(data))
-  return String(data.maxPrice ?? "")
+  return String(data.data?.maxPrice ?? "")
 }
