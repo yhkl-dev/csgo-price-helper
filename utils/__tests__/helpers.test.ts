@@ -77,6 +77,10 @@ describe("formatPrice", () => {
     expect(formatPrice("N/A", "BUFF")).toBe("N/A")
   })
 
+  it("formats IGXE price with ¥ prefix", () => {
+    expect(formatPrice("580", "IGXE")).toBe("¥ 580")
+  })
+
   it("returns original for unknown platform", () => {
     expect(formatPrice("100", "Unknown")).toBe("100")
   })
@@ -106,6 +110,12 @@ describe("constructGoodsURL", () => {
   it("builds C5 URL using goodsID", () => {
     expect(constructGoodsURL("C5", "11111", "AK-47 | Redline")).toBe(
       "https://www.c5game.com/csgo/11111"
+    )
+  })
+
+  it("builds IGXE URL using goodsID", () => {
+    expect(constructGoodsURL("IGXE", "681453", "AWP | Chrome Cannon")).toBe(
+      "https://www.igxe.cn/product/730/681453"
     )
   })
 
@@ -148,6 +158,25 @@ describe("createDataType", () => {
     const result = createDataType("C5", "789", "M4A4", "", "")
     expect(result.Sell).toBe("")
     expect(result.WantToBuy).toBe("")
+  })
+
+  it("creates IGXE DataType with rent prices", () => {
+    const result = createDataType(
+      "IGXE",
+      "681453",
+      "AWP | Chrome Cannon",
+      "580.00",
+      "684.00",
+      { LeaseUnitPrice: "0.75", LongLeaseUnitPrice: "0.69" }
+    )
+    expect(result).toEqual({
+      Platform: "IGXE",
+      GoodsID: "681453",
+      MarkingHashName: "AWP | Chrome Cannon",
+      Sell: "580.00",
+      WantToBuy: "684.00",
+      Rent: { LeaseUnitPrice: "0.75", LongLeaseUnitPrice: "0.69" }
+    })
   })
 })
 
