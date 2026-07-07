@@ -222,8 +222,7 @@ const fetchC5Data = async (
       )
     }
 
-    // C5 price is in cents, divide by 100
-    const priceStr = (item.price / 100).toFixed(2)
+    const priceStr = String(item.price)
     return createDataType("C5", item.itemId, hashName, priceStr, "/")
   } catch (error) {
     console.error("[C5] fetchC5Data error:", error)
