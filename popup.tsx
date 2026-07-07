@@ -195,7 +195,9 @@ const fetchSteamData = async (hashName: string): Promise<DataType> => {
 const fetchC5Data = async (hashName: string): Promise<DataType> => {
   try {
     const goodsId = c5Data[hashName]
+    console.log("[C5] hashName:", hashName, "→ goodsId:", goodsId)
     if (!goodsId) {
+      console.warn("[C5] goodsId not found for hashName:", hashName)
       return createDataType(
         "C5",
         "",
@@ -205,6 +207,7 @@ const fetchC5Data = async (hashName: string): Promise<DataType> => {
       )
     }
     const price = await getC5GoodsInfo(goodsId)
+    console.log("[C5] price result:", price)
     return createDataType(
       "C5",
       goodsId,
@@ -213,6 +216,7 @@ const fetchC5Data = async (hashName: string): Promise<DataType> => {
       "/"
     )
   } catch (error) {
+    console.error("[C5] fetchC5Data error:", error)
     return createDataType(
       "C5",
       "",

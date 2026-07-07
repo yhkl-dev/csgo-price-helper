@@ -4,6 +4,9 @@ import steamData from "../SteamTradingSite-ID-Mapper/steam/730.json"
 import type { C5GoodsResponse, SteamGoodsResponse } from "./types"
 
 export const getC5GoodsInfo = async (goodsID: string) => {
+  const url = `https://www.c5game.com/napi/trade/steamtrade/sga/sell/v3/list?itemId=${goodsID}`
+  console.log("[C5] request:", url)
+
   const myHeaders = new Headers()
 
   const requestOptions = {
@@ -11,18 +14,21 @@ export const getC5GoodsInfo = async (goodsID: string) => {
     headers: myHeaders
   }
 
-  const response = await fetch(
-    `https://www.c5game.com/napi/trade/steamtrade/sga/sell/v3/list?itemId=${goodsID}`,
-    requestOptions
-  )
+  const response = await fetch(url, requestOptions)
+
+  console.log("[C5] response status:", response.status, response.statusText)
 
   if (!response.ok) {
-    throw new Error("Network response was not ok")
+    const body = await response.text().catch(() => "(body read failed)")
+    console.error("[C5] non-ok response body:", body)
+    throw new Error(`C5 Network response was not ok: ${response.status}`)
   }
   const goodsInfo = (await response.json()) as C5GoodsResponse
+  console.log("[C5] response data:", JSON.stringify(goodsInfo))
   if (goodsInfo.data) {
     return goodsInfo.data.list[0].price
   }
+  console.warn("[C5] goodsInfo.data is empty, returning ''")
   return ""
 }
 
