@@ -44,8 +44,8 @@ const PLATFORM_COOKIES_URLS = {
 const TABLE_COLUMNS = [
   { title: chrome.i18n.getMessage("platform"), key: "Platform" },
   { title: chrome.i18n.getMessage("sell"), key: "Sell" },
-  { title: chrome.i18n.getMessage("rent"), key: "Rent" },
-  { title: chrome.i18n.getMessage("wantToBuy"), key: "WantToBuy" }
+  { title: chrome.i18n.getMessage("wantToBuy"), key: "WantToBuy" },
+  { title: chrome.i18n.getMessage("rent"), key: "Rent" }
 ] as const
 
 // ==================== Data Fetching ====================
