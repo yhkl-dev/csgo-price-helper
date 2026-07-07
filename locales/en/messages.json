@@ -76,8 +76,16 @@
     "description": "Displayed when an error occurs fetching data"
   },
   "c5NeedApiKey": {
-    "message": "Set API Key ⚙",
+    "message": "Set API Key ↓",
     "description": "Prompt to set C5 API key"
+  },
+  "c5ApiKeyLabel": {
+    "message": "C5 OpenAPI Key — get your app-key from c5game.com merchant dashboard",
+    "description": "Label for C5 API key input"
+  },
+  "save": {
+    "message": "Save",
+    "description": "Save button text"
   },
   "feedback": {
     "message": "Feedback",

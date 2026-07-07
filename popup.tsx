@@ -298,7 +298,6 @@ function IndexPopup() {
   const [lang, setLang] = useState<string[]>([])
   const [error, setError] = useState<string>("")
   const [c5ApiKey, setC5ApiKey] = useState<string>("")
-  const [showSettings, setShowSettings] = useState<boolean>(false)
   const [c5KeyInput, setC5KeyInput] = useState<string>("")
 
   const loadC5ApiKey = async () => {
@@ -526,11 +525,11 @@ function IndexPopup() {
             </table>
           </div>
           {/* C5 API Settings */}
-          {showSettings && (
-            <div className="px-4 py-2 border-t border-border/50 shrink-0 flex items-center gap-2">
-              <span className="text-xs text-muted-foreground shrink-0">
-                C5 API Key
-              </span>
+          <div className="px-4 py-2 border-t border-border shrink-0 space-y-1.5">
+            <p className="text-[10px] text-muted-foreground">
+              {chrome.i18n.getMessage("c5ApiKeyLabel")}
+            </p>
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={c5KeyInput}
@@ -541,29 +540,21 @@ function IndexPopup() {
               <button
                 onClick={() => {
                   saveC5ApiKey(c5KeyInput)
-                  setShowSettings(false)
                   loadData()
                 }}
-                className="h-7 px-2.5 text-xs bg-foreground text-background rounded hover:opacity-80 transition-opacity">
-                Save
+                className="h-7 px-3 text-xs bg-foreground text-background rounded hover:opacity-80 transition-opacity shrink-0">
+                {chrome.i18n.getMessage("save")}
               </button>
             </div>
-          )}
+          </div>
           <div className="px-4 py-1.5 border-t border-border/50 shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <a
-                href="https://github.com/yhkl-dev/csgo-price-helper/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {chrome.i18n.getMessage("feedback")}
-              </a>
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                {showSettings ? "✕" : "⚙"}
-              </button>
-            </div>
+            <a
+              href="https://github.com/yhkl-dev/csgo-price-helper/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {chrome.i18n.getMessage("feedback")}
+            </a>
             <span className="text-[10px] text-muted-foreground/50">
               Built by yhkl &copy; 2026
             </span>
