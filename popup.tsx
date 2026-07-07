@@ -295,7 +295,7 @@ const Skeleton = () => (
     {[1, 2, 3, 4].map((i) => (
       <div
         key={i}
-        className="flex items-center gap-6 py-2.5 border-b border-border/50 last:border-0">
+        className="flex items-center gap-6 h-12 border-b border-border/50 last:border-0">
         <div className="w-14 h-3.5 bg-muted rounded-sm animate-pulse" />
         <div className="w-16 h-3.5 bg-muted rounded-sm animate-pulse" />
         <div className="w-20 h-3.5 bg-muted rounded-sm animate-pulse" />
@@ -505,7 +505,7 @@ function IndexPopup() {
                     <tr
                       key={data.Platform}
                       onClick={() => handleRowClick(data)}
-                      className={`border-b border-border/50 last:border-0 transition-colors ${
+                      className={`h-12 border-b border-border/50 last:border-0 transition-colors ${
                         clickable
                           ? "cursor-pointer hover:bg-muted group"
                           : "cursor-default"
@@ -539,7 +539,7 @@ function IndexPopup() {
                           formatPrice(data.Sell, data.Platform)
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm text-muted-foreground">
+                      <td className="px-4 py-2 text-sm text-muted-foreground align-middle">
                         {data.Rent.LeaseUnitPrice ? (
                           <div className="space-y-1 text-xs">
                             <div>
