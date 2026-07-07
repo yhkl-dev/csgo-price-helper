@@ -33,9 +33,6 @@
     "tailwindcss": "^3.4.3",
     "typescript": "5.3.3"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": ["sharp", "@parcel/watcher", "@swc/core", "esbuild", "lmdb", "msgpackr-extract"]
-  },
   "manifest": {
     "host_permissions": [
       "*://*.buff.163.com/*",
