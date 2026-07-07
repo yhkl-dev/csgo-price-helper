@@ -27,7 +27,7 @@ npx prettier --write .
 
 ### Plasmo 框架结构
 
-这是 Chrome 扩展程序的标准 [Plasmo](https://docs.plasmo.com/) v0.85.2 项目。Plasmo 处理 manifest 生成和构建管道。
+这是 Chrome 扩展程序的标准 [Plasmo](https://docs.plasmo.com/) v0.90.5 项目。Plasmo 处理 manifest 生成和构建管道。
 
 **入口点：**
 - `popup.tsx` — 主弹窗 UI（当用户点击扩展程序图标时显示）。仅在用户打开了 BUFF 商品页面时起作用。
