@@ -383,3 +383,36 @@ export const getIgxeBuyPrice = async (productId: string): Promise<string> => {
   }
   return ""
 }
+
+export interface IgxeLeaseResponse {
+  status: boolean
+  data: {
+    rows: { unit_price: string; long_term_price: string }[]
+  }
+}
+
+export const getIgxeLeasePrice = async (
+  productId: string
+): Promise<{ LeaseUnitPrice: string; LongLeaseUnitPrice: string }> => {
+  const url = `https://www.igxe.cn/api/v2/lease/trade-list/730/${productId}?sort_rule=3&sort=3`
+
+  const response = await fetch(url, {
+    headers: {
+      "x-requested-with": "XMLHttpRequest",
+      accept: "*/*"
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`IGXE lease API error: ${response.status}`)
+  }
+
+  const data = (await response.json()) as IgxeLeaseResponse
+  if (data.status && data.data?.rows?.length > 0) {
+    return {
+      LeaseUnitPrice: data.data.rows[0].unit_price,
+      LongLeaseUnitPrice: data.data.rows[0].long_term_price
+    }
+  }
+  return { LeaseUnitPrice: "", LongLeaseUnitPrice: "" }
+}

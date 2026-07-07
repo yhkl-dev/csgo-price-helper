@@ -8,6 +8,7 @@ import {
   getC5BatchPrice,
   getC5MaxBuyPrice,
   getIgxeBuyPrice,
+  getIgxeLeasePrice,
   getIgxeSellPrice,
   getSteamGoodsInfo,
   getUUPriceInfo,
@@ -262,16 +263,18 @@ const fetchIgxeData = async (hashName: string): Promise<DataType> => {
     )
   }
   try {
-    const [sellPrice, buyPrice] = await Promise.all([
+    const [sellPrice, buyPrice, rentPrice] = await Promise.all([
       getIgxeSellPrice(String(productId)),
-      getIgxeBuyPrice(String(productId))
+      getIgxeBuyPrice(String(productId)),
+      getIgxeLeasePrice(String(productId))
     ])
     return createDataType(
       "IGXE",
       String(productId),
       hashName,
       sellPrice || chrome.i18n.getMessage("notAvailable"),
-      buyPrice || "/"
+      buyPrice || "/",
+      rentPrice
     )
   } catch (error) {
     console.error("[IGXE] fetchIgxeData error:", error)
