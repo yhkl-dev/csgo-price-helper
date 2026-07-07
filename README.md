@@ -1,44 +1,17 @@
-# CSGO price helper
+# CS:GO Price Helper
 
-## Language Versions
+Compare CS:GO item prices (sell orders, buy orders, rental prices) across BUFF, UUYP, Steam, and C5 trading platforms in one popup.
 
-- [中文版](./README_zh.md)
+## Permissions
 
-This extension is designed to help users compare product information across different game trading platforms, including price, rental information, and purchase requests. It primarily targets CS:GO (Counter-Strike: Global Offensive) game items, integrating data from multiple platforms to provide users with a convenient way to compare and view information.
+| Permission | Justification |
+|------------|---------------|
+| **Tabs** | Read the current tab URL to detect BUFF.163.com goods pages and extract the item ID. Only the active tab is read —— no history or navigation data is accessed. |
+| **Cookies** | Access BUFF.163.com and youpin898.com session cookies to authenticate API requests. Only these two domains are touched. |
+| **Storage** | Pass UUYP device identifiers (Web-Device-Id, Web-Device-Uk, Web-Uk) from the content script to the popup via chrome.storage.local. Required by the UUYP purchase-price API for authentication. No other data is stored. |
+| **Host: buff.163.com** | Read item listing pages and call BUFF market API for sell/buy orders. |
+| **Host: youpin898.com** | Inject content script to extract device identifiers; call UUYP API for prices. |
+| **Host: steamcommunity.com** | Call Steam Community Market API for item price histograms. |
+| **Host: c5game.com** | Call C5 market API for sell order listings. |
 
-## Key Features
-
-- **Platform Support**: Currently supports trading platforms including Steam, BUFF, UUYP, and C5.
-- **Product Information Display**: Displays the selling price, rental price, and purchase price of the selected product on different platforms.
-- **Direct Links**: Provides direct links to the specific product pages on each platform for quick access by the user.
-- **Real-time Data**: Retrieves real-time product data through the APIs of each platform.
-- **User-friendly Interface**: A simple and clear interface design allows users to easily use this extension.
-
-## How to Use
-
-1. Install this extension on the [Chrome Web Store](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf).
-
-   [![Chrome Web Store](readme/get-chrome.png)](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf)
-
-2. Open the BUFF website (https://buff.163.com) and navigate to a specific CS:GO product page.
-3. Click the browser extension icon to activate the extension interface.
-4. The extension will automatically load the current product's information on other platforms and display it in the extension interface.
-5. Click on any platform's link to directly jump to that platform's product page.
-
-## Extension Installation Address
-
-You can install this extension from the Chrome Web Store via the following link: [CSGO Price Helper](https://chromewebstore.google.com/detail/csgo-price-helper/gllpkeapfamjcbkacnbmobfkgnhlfkhf)
-
-## Notes
-
-- Please ensure your browser allows the extension to access webpage data for it to function properly.
-- The extension's data update depends on the APIs of each platform. If an API of a platform changes or becomes unavailable, it may affect some functionalities of the extension.
-- This extension is for personal use only and may not be used for any commercial purposes.
-
-## Development Information
-
-This extension is developed using the React framework and designed with the Ant Design component library. All data is obtained through official APIs to ensure accuracy and timeliness.
-
-## Contributions
-
-If you have any suggestions or improvements for this extension, feel free to submit an Issue or Pull Request on GitHub.
+All host permissions are limited to the API endpoints required for price comparison. No browsing data is collected.

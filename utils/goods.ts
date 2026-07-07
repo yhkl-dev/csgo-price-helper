@@ -60,7 +60,9 @@ export const getSteamGoodsInfo = async (
   return goodsInfo
 }
 
-function convertCookiesToString(cookies: chrome.cookies.Cookie[]): string {
+export function convertCookiesToString(
+  cookies: chrome.cookies.Cookie[]
+): string {
   return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ")
 }
 
@@ -110,7 +112,7 @@ const UUYP_RENT_URL = `${UUYP_API_BASE}/queryOnLeaseCommodityList`
 const UUYP_BUY_URL =
   "https://api.youpin898.com/api/youpin/bff/trade/purchase/order/getTemplatePurchaseOrderListPC"
 
-interface UUYPDeviceInfo {
+export interface UUYPDeviceInfo {
   deviceId: string
   deviceUk: string
   uk: string
@@ -127,7 +129,7 @@ const UUYP_COMMON_HEADERS: Record<string, string> = {
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 }
 
-function decodeJWT(token: string): Record<string, unknown> | null {
+export function decodeJWT(token: string): Record<string, unknown> | null {
   try {
     const parts = token.split(".")
     if (parts.length !== 3) return null
@@ -150,7 +152,7 @@ async function uuypBackgroundFetch(
   })
 }
 
-function getUUYPAuthHeaders(
+export function getUUYPAuthHeaders(
   token: string,
   device?: UUYPDeviceInfo
 ): Record<string, string> {
