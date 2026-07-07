@@ -7,6 +7,7 @@ import {
   getBUFFwantToBuyPrice,
   getC5BatchPrice,
   getC5MaxBuyPrice,
+  getIgxeSellPrice,
   getSteamGoodsInfo,
   getUUPriceInfo,
   getUURentPriceInfo,
@@ -25,6 +26,7 @@ import {
 } from "~utils/helpers"
 import type { DataType, GoodsInfo } from "~utils/types"
 
+import igxeData from "./SteamTradingSite-ID-Mapper/igxe/730.json"
 import uuData from "./SteamTradingSite-ID-Mapper/uuyp/730.json"
 
 import "./style.css"
@@ -33,7 +35,8 @@ const PLATFORM_COLORS: Record<string, string> = {
   BUFF: "bg-orange-500",
   UUYP: "bg-purple-500",
   Steam: "bg-blue-500",
-  C5: "bg-green-500"
+  C5: "bg-green-500",
+  IGXE: "bg-cyan-500"
 }
 
 const PLATFORM_COOKIES_URLS = {
@@ -246,6 +249,38 @@ const fetchC5Data = async (
   }
 }
 
+const fetchIgxeData = async (hashName: string): Promise<DataType> => {
+  const productId = igxeData[hashName]
+  if (!productId) {
+    return createDataType(
+      "IGXE",
+      "",
+      hashName,
+      chrome.i18n.getMessage("notFound"),
+      "/"
+    )
+  }
+  try {
+    const price = await getIgxeSellPrice(String(productId))
+    return createDataType(
+      "IGXE",
+      String(productId),
+      hashName,
+      price || chrome.i18n.getMessage("notAvailable"),
+      "/"
+    )
+  } catch (error) {
+    console.error("[IGXE] fetchIgxeData error:", error)
+    return createDataType(
+      "IGXE",
+      "",
+      hashName,
+      chrome.i18n.getMessage("dataError"),
+      "/"
+    )
+  }
+}
+
 // ==================== Sub-Components ====================
 
 const Skeleton = () => (
@@ -342,7 +377,8 @@ function IndexPopup() {
         ),
         fetchUUYPData(hashName),
         fetchSteamData(hashName),
-        fetchC5Data(hashName, apiKey)
+        fetchC5Data(hashName, apiKey),
+        fetchIgxeData(hashName)
       ])
       setTableData(allPlatformData)
     } catch (err) {

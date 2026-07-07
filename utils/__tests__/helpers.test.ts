@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   CNY_PLATFORMS,
   constructGoodsURL,
@@ -85,23 +86,27 @@ describe("formatPrice", () => {
 
 describe("constructGoodsURL", () => {
   it("builds Steam URL using hashName", () => {
-    expect(constructGoodsURL("Steam", "176116429", "AK-47 | Redline"))
-      .toBe("https://steamcommunity.com/market/listings/730/AK-47 | Redline")
+    expect(constructGoodsURL("Steam", "176116429", "AK-47 | Redline")).toBe(
+      "https://steamcommunity.com/market/listings/730/AK-47 | Redline"
+    )
   })
 
   it("builds BUFF URL using goodsID", () => {
-    expect(constructGoodsURL("BUFF", "12345", "AK-47 | Redline"))
-      .toBe("https://buff.163.com/goods/12345")
+    expect(constructGoodsURL("BUFF", "12345", "AK-47 | Redline")).toBe(
+      "https://buff.163.com/goods/12345"
+    )
   })
 
   it("builds UUYP URL using goodsID", () => {
-    expect(constructGoodsURL("UUYP", "67890", "AK-47 | Redline"))
-      .toBe("https://www.youpin898.com/market/goods-list?listType=20&templateId=67890&gameId=730")
+    expect(constructGoodsURL("UUYP", "67890", "AK-47 | Redline")).toBe(
+      "https://www.youpin898.com/market/goods-list?listType=20&templateId=67890&gameId=730"
+    )
   })
 
   it("builds C5 URL using goodsID", () => {
-    expect(constructGoodsURL("C5", "11111", "AK-47 | Redline"))
-      .toBe("https://www.c5game.com/csgo/11111")
+    expect(constructGoodsURL("C5", "11111", "AK-47 | Redline")).toBe(
+      "https://www.c5game.com/csgo/11111"
+    )
   })
 
   it("returns empty string for unknown platform", () => {
@@ -179,8 +184,8 @@ describe("isClickable", () => {
 // ---- CNY_PLATFORMS ----
 
 describe("CNY_PLATFORMS", () => {
-  it("includes BUFF, UUYP, C5", () => {
-    expect(CNY_PLATFORMS).toEqual(["BUFF", "UUYP", "C5"])
+  it("includes BUFF, UUYP, C5, IGXE", () => {
+    expect(CNY_PLATFORMS).toEqual(["BUFF", "UUYP", "C5", "IGXE"])
   })
 
   it("does not include Steam", () => {

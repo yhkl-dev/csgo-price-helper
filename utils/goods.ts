@@ -336,3 +336,29 @@ export const getC5MaxBuyPrice = async (
   console.log("[C5] buy response data:", JSON.stringify(data))
   return String(data.data?.maxPrice ?? "")
 }
+
+export interface IgxeSellResponse {
+  succ: boolean
+  d_list: { unit_price: string }[]
+}
+
+export const getIgxeSellPrice = async (productId: string): Promise<string> => {
+  const url = `https://www.igxe.cn/product/trade/730/${productId}`
+
+  const response = await fetch(url, {
+    headers: {
+      "x-requested-with": "XMLHttpRequest",
+      accept: "*/*"
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`IGXE API error: ${response.status}`)
+  }
+
+  const data = (await response.json()) as IgxeSellResponse
+  if (data.succ && data.d_list.length > 0) {
+    return data.d_list[0].unit_price
+  }
+  return ""
+}
