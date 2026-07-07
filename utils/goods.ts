@@ -362,3 +362,24 @@ export const getIgxeSellPrice = async (productId: string): Promise<string> => {
   }
   return ""
 }
+
+export const getIgxeBuyPrice = async (productId: string): Promise<string> => {
+  const url = `https://www.igxe.cn/purchase/get_product_purchases?product_id=${productId}`
+
+  const response = await fetch(url, {
+    headers: {
+      "x-requested-with": "XMLHttpRequest",
+      accept: "*/*"
+    }
+  })
+
+  if (!response.ok) {
+    throw new Error(`IGXE buy API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  if (data.succ && data.datas?.datas?.length > 0) {
+    return data.datas.datas[0].unit_price
+  }
+  return ""
+}
