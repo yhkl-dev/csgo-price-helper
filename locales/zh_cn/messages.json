@@ -83,6 +83,14 @@
     "message": "未配置",
     "description": "Shown when C5 API key is not set"
   },
+  "c5GetKey": {
+    "message": "获取 Key",
+    "description": "Link to C5 OpenAPI page"
+  },
+  "c5ApiHelp": {
+    "message": "在 C5 开放平台获取 app-key",
+    "description": "Tooltip for C5 API key help"
+  },
   "edit": {
     "message": "编辑",
     "description": "Edit button text"

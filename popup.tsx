@@ -539,6 +539,14 @@ function IndexPopup() {
                   placeholder="app-key"
                   className="flex-1 h-6 px-2 text-[10px] border border-border rounded bg-background text-foreground focus:outline-none focus:border-foreground/30"
                 />
+                <a
+                  href="https://www.c5game.com/user/user/open-api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  title={chrome.i18n.getMessage("c5ApiHelp")}>
+                  ?
+                </a>
                 <button
                   onClick={() => {
                     saveC5ApiKey(c5KeyInput)
@@ -556,6 +564,15 @@ function IndexPopup() {
                     ? "•".repeat(16)
                     : chrome.i18n.getMessage("c5NotSet")}
                 </span>
+                {!c5ApiKey && (
+                  <a
+                    href="https://www.c5game.com/user/user/open-api"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                    {chrome.i18n.getMessage("c5GetKey")} →
+                  </a>
+                )}
                 <button
                   onClick={() => setC5Editing(true)}
                   className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
