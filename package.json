@@ -1,7 +1,7 @@
 {
   "name": "csgo-price-helper",
   "displayName": "CS:GO Price Helper",
-  "version": "0.0.5",
+  "version": "1.0.0",
   "description": "Compare CS:GO item prices across BUFF, UUYP, Steam, C5, and IGXE",
   "author": "kaiyang939325@gmail.com",
   "scripts": {
