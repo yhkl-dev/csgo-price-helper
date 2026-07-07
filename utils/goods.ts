@@ -5,26 +5,25 @@ import type { C5GoodsResponse, SteamGoodsResponse } from "./types"
 
 export const getC5GoodsInfo = async (goodsID: string) => {
   const url = `https://www.c5game.com/napi/trade/steamtrade/sga/sell/v3/list?itemId=${goodsID}`
-  console.log("[C5] request:", url)
+  console.log("[C5] request via background:", url)
 
-  const myHeaders = new Headers()
+  const result = await sendToBackground({
+    name: "c5-fetch",
+    body: { url }
+  })
 
-  const requestOptions = {
-    method: "GET",
-    headers: myHeaders
+  console.log("[C5] response status:", result.status)
+
+  if (!result.ok) {
+    console.error(
+      "[C5] non-ok response:",
+      JSON.stringify(result.data).slice(0, 500)
+    )
+    throw new Error(`C5 Network response was not ok: ${result.status}`)
   }
 
-  const response = await fetch(url, requestOptions)
-
-  console.log("[C5] response status:", response.status, response.statusText)
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "(body read failed)")
-    console.error("[C5] non-ok response body:", body)
-    throw new Error(`C5 Network response was not ok: ${response.status}`)
-  }
-  const goodsInfo = (await response.json()) as C5GoodsResponse
-  console.log("[C5] response data:", JSON.stringify(goodsInfo))
+  const goodsInfo = result.data as C5GoodsResponse
+  console.log("[C5] response data:", JSON.stringify(goodsInfo).slice(0, 500))
   if (goodsInfo.data) {
     return goodsInfo.data.list[0].price
   }
