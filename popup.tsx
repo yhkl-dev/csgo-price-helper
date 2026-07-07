@@ -389,7 +389,7 @@ function IndexPopup() {
       ])
       // BUFF first, Steam second, then the rest
       const sorted = allPlatformData.sort((a, b) => {
-        const order: Record<string, number> = { BUFF: 0, Steam: 1 }
+        const order: Record<string, number> = { Steam: 0, BUFF: 1 }
         return (order[a.Platform] ?? 2) - (order[b.Platform] ?? 2)
       })
       setTableData(sorted)
