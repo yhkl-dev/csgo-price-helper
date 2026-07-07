@@ -79,9 +79,17 @@
     "message": "设置 API Key ↓",
     "description": "Prompt to set C5 API key"
   },
-  "c5ApiKeyLabel": {
-    "message": "C5 OpenAPI Key — 在 c5game.com 商户中心获取 app-key",
-    "description": "Label for C5 API key input"
+  "c5NotSet": {
+    "message": "未配置",
+    "description": "Shown when C5 API key is not set"
+  },
+  "edit": {
+    "message": "编辑",
+    "description": "Edit button text"
+  },
+  "set": {
+    "message": "设置",
+    "description": "Set button text"
   },
   "save": {
     "message": "保存",

@@ -299,6 +299,7 @@ function IndexPopup() {
   const [error, setError] = useState<string>("")
   const [c5ApiKey, setC5ApiKey] = useState<string>("")
   const [c5KeyInput, setC5KeyInput] = useState<string>("")
+  const [c5Editing, setC5Editing] = useState<boolean>(false)
 
   const saveC5ApiKey = async (key: string) => {
     setC5ApiKey(key)
@@ -358,6 +359,7 @@ function IndexPopup() {
       const key = (stored.c5ApiKey as string) || ""
       setC5ApiKey(key)
       setC5KeyInput(key)
+      if (!key) setC5Editing(true)
       loadData(key)
     }
     init()
@@ -525,27 +527,45 @@ function IndexPopup() {
             </table>
           </div>
           {/* C5 API Settings */}
-          <div className="px-4 py-2 border-t border-border shrink-0 space-y-1.5">
-            <p className="text-[10px] text-muted-foreground">
-              {chrome.i18n.getMessage("c5ApiKeyLabel")}
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={c5KeyInput}
-                onChange={(e) => setC5KeyInput(e.target.value)}
-                placeholder="app-key"
-                className="flex-1 h-7 px-2 text-xs border border-border rounded bg-background text-foreground focus:outline-none focus:border-foreground/30"
-              />
-              <button
-                onClick={() => {
-                  saveC5ApiKey(c5KeyInput)
-                  loadData(c5KeyInput)
-                }}
-                className="h-7 px-3 text-xs bg-foreground text-background rounded hover:opacity-80 transition-opacity shrink-0">
-                {chrome.i18n.getMessage("save")}
-              </button>
-            </div>
+          <div className="px-4 py-1.5 border-t border-border shrink-0 flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              C5
+            </span>
+            {c5Editing ? (
+              <>
+                <input
+                  type="text"
+                  value={c5KeyInput}
+                  onChange={(e) => setC5KeyInput(e.target.value)}
+                  placeholder="app-key"
+                  className="flex-1 h-6 px-2 text-[10px] border border-border rounded bg-background text-foreground focus:outline-none focus:border-foreground/30"
+                />
+                <button
+                  onClick={() => {
+                    saveC5ApiKey(c5KeyInput)
+                    setC5Editing(false)
+                    loadData(c5KeyInput)
+                  }}
+                  className="h-6 px-2 text-[10px] bg-foreground text-background rounded hover:opacity-80 transition-opacity shrink-0">
+                  {chrome.i18n.getMessage("save")}
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="flex-1 text-[10px] text-muted-foreground truncate">
+                  {c5ApiKey
+                    ? "•".repeat(16)
+                    : chrome.i18n.getMessage("c5NotSet")}
+                </span>
+                <button
+                  onClick={() => setC5Editing(true)}
+                  className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                  {c5ApiKey
+                    ? chrome.i18n.getMessage("edit")
+                    : chrome.i18n.getMessage("set")}
+                </button>
+              </>
+            )}
           </div>
           <div className="px-4 py-1.5 border-t border-border/50 shrink-0 flex items-center justify-between">
             <a

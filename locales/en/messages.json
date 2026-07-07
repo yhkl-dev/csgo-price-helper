@@ -79,9 +79,17 @@
     "message": "Set API Key ↓",
     "description": "Prompt to set C5 API key"
   },
-  "c5ApiKeyLabel": {
-    "message": "C5 OpenAPI Key — get your app-key from c5game.com merchant dashboard",
-    "description": "Label for C5 API key input"
+  "c5NotSet": {
+    "message": "Not configured",
+    "description": "Shown when C5 API key is not set"
+  },
+  "edit": {
+    "message": "Edit",
+    "description": "Edit button text"
+  },
+  "set": {
+    "message": "Set",
+    "description": "Set button text"
   },
   "save": {
     "message": "Save",
