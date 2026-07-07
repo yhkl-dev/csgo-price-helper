@@ -75,6 +75,34 @@
     "message": "Error",
     "description": "Displayed when an error occurs fetching data"
   },
+  "c5NeedApiKey": {
+    "message": "Set API Key ↓",
+    "description": "Prompt to set C5 API key"
+  },
+  "c5NotSet": {
+    "message": "Not configured",
+    "description": "Shown when C5 API key is not set"
+  },
+  "c5GetKey": {
+    "message": "Get API Key",
+    "description": "Link to C5 OpenAPI page"
+  },
+  "c5ApiHelp": {
+    "message": "Get your app-key from C5 OpenAPI dashboard",
+    "description": "Tooltip for C5 API key help"
+  },
+  "edit": {
+    "message": "Edit",
+    "description": "Edit button text"
+  },
+  "set": {
+    "message": "Set",
+    "description": "Set button text"
+  },
+  "save": {
+    "message": "Save",
+    "description": "Save button text"
+  },
   "feedback": {
     "message": "Feedback",
     "description": "Link to GitHub issues for feedback"

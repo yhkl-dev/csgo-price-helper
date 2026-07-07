@@ -6,10 +6,11 @@ export const PLATFORM_URLS = {
   BUFF: (goodsId: string) => `https://buff.163.com/goods/${goodsId}`,
   UUYP: (goodsId: string) =>
     `https://www.youpin898.com/market/goods-list?listType=20&templateId=${goodsId}&gameId=730`,
-  C5: (goodsId: string) => `https://www.c5game.com/csgo/${goodsId}`
+  C5: (goodsId: string) => `https://www.c5game.com/csgo/${goodsId}`,
+  IGXE: (goodsId: string) => `https://www.igxe.cn/product/730/${goodsId}`
 } as const
 
-export const CNY_PLATFORMS = ["BUFF", "UUYP", "C5"]
+export const CNY_PLATFORMS = ["BUFF", "UUYP", "C5", "IGXE", "Steam"]
 
 export const constructGoodsURL = (
   platform: string,

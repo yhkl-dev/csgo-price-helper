@@ -1,30 +1,7 @@
 import { sendToBackground } from "@plasmohq/messaging"
 
 import steamData from "../SteamTradingSite-ID-Mapper/steam/730.json"
-import type { C5GoodsResponse, SteamGoodsResponse } from "./types"
-
-export const getC5GoodsInfo = async (goodsID: string) => {
-  const myHeaders = new Headers()
-
-  const requestOptions = {
-    method: "GET",
-    headers: myHeaders
-  }
-
-  const response = await fetch(
-    `https://www.c5game.com/napi/trade/steamtrade/sga/sell/v3/list?itemId=${goodsID}`,
-    requestOptions
-  )
-
-  if (!response.ok) {
-    throw new Error("Network response was not ok")
-  }
-  const goodsInfo = (await response.json()) as C5GoodsResponse
-  if (goodsInfo.data) {
-    return goodsInfo.data.list[0].price
-  }
-  return ""
-}
+import type { C5BatchPriceResponse, SteamGoodsResponse } from "./types"
 
 export const searchForExactNameId = (searchTerm: string): string => {
   for (const key in steamData) {
@@ -315,4 +292,105 @@ export const getUUwantToBuyPrice = async (
       throw error
     return ""
   }
+}
+
+export const getC5BatchPrice = async (
+  appKey: string,
+  marketHashNames: string[]
+): Promise<C5BatchPriceResponse> => {
+  const url = `https://openapi.c5game.com/merchant/product/price/batch?app-key=${appKey}`
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      appId: "730",
+      marketHashNames
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`C5 API error: ${response.status}`)
+  }
+
+  return (await response.json()) as C5BatchPriceResponse
+}
+
+export const getC5MaxBuyPrice = async (
+  appKey: string,
+  itemId: string
+): Promise<string> => {
+  const url = `https://openapi.c5game.com/merchant/purchase/v1/max-price?itemId=${itemId}&app-key=${appKey}`
+  console.log("[C5] buy request:", url)
+
+  const response = await fetch(url)
+  console.log("[C5] buy response status:", response.status)
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "")
+    console.error("[C5] buy response body:", body.slice(0, 300))
+    throw new Error(`C5 buy price API error: ${response.status}`)
+  }
+
+  const data = await response.json()
+  console.log("[C5] buy response data:", JSON.stringify(data))
+  return String(data.data?.maxPrice ?? "")
+}
+
+async function igxeBackgroundFetch(url: string): Promise<unknown> {
+  const result = await sendToBackground({
+    name: "igxe-fetch",
+    body: { url }
+  })
+  if (!result.ok) {
+    throw new Error(`IGXE API error: ${result.status}`)
+  }
+  return result.data
+}
+
+export interface IgxeSellResponse {
+  succ: boolean
+  d_list: { unit_price: string }[]
+}
+
+export const getIgxeSellPrice = async (productId: string): Promise<string> => {
+  const url = `https://www.igxe.cn/product/trade/730/${productId}`
+  const data = (await igxeBackgroundFetch(url)) as IgxeSellResponse
+  if (data.succ && data.d_list.length > 0) {
+    return data.d_list[0].unit_price
+  }
+  return ""
+}
+
+export const getIgxeBuyPrice = async (productId: string): Promise<string> => {
+  const url = `https://www.igxe.cn/purchase/get_product_purchases?product_id=${productId}`
+  const data = (await igxeBackgroundFetch(url)) as {
+    succ: boolean
+    datas: { datas: { unit_price: string }[] }
+  }
+  if (data.succ && data.datas?.datas?.length > 0) {
+    return data.datas.datas[0].unit_price
+  }
+  return ""
+}
+
+export interface IgxeLeaseResponse {
+  status: boolean
+  data: {
+    rows: { unit_price: string; long_term_price: string }[]
+  }
+}
+
+export const getIgxeLeasePrice = async (
+  productId: string
+): Promise<{ LeaseUnitPrice: string; LongLeaseUnitPrice: string }> => {
+  const url = `https://www.igxe.cn/api/v2/lease/trade-list/730/${productId}?sort_rule=3&sort=3`
+  const data = (await igxeBackgroundFetch(url)) as IgxeLeaseResponse
+  if (data.status && data.data?.rows?.length > 0) {
+    return {
+      LeaseUnitPrice: data.data.rows[0].unit_price,
+      LongLeaseUnitPrice: data.data.rows[0].long_term_price
+    }
+  }
+  return { LeaseUnitPrice: "", LongLeaseUnitPrice: "" }
 }

@@ -5,7 +5,11 @@ import { sendToBackground } from "@plasmohq/messaging"
 import {
   getBUFFGoodsInfo,
   getBUFFwantToBuyPrice,
-  getC5GoodsInfo,
+  getC5BatchPrice,
+  getC5MaxBuyPrice,
+  getIgxeBuyPrice,
+  getIgxeLeasePrice,
+  getIgxeSellPrice,
   getSteamGoodsInfo,
   getUUPriceInfo,
   getUURentPriceInfo,
@@ -24,7 +28,7 @@ import {
 } from "~utils/helpers"
 import type { DataType, GoodsInfo } from "~utils/types"
 
-import c5Data from "./SteamTradingSite-ID-Mapper/c5/730.json"
+import igxeData from "./SteamTradingSite-ID-Mapper/igxe/730.json"
 import uuData from "./SteamTradingSite-ID-Mapper/uuyp/730.json"
 
 import "./style.css"
@@ -33,7 +37,8 @@ const PLATFORM_COLORS: Record<string, string> = {
   BUFF: "bg-orange-500",
   UUYP: "bg-purple-500",
   Steam: "bg-blue-500",
-  C5: "bg-green-500"
+  C5: "bg-green-500",
+  IGXE: "bg-cyan-500"
 }
 
 const PLATFORM_COOKIES_URLS = {
@@ -44,8 +49,8 @@ const PLATFORM_COOKIES_URLS = {
 const TABLE_COLUMNS = [
   { title: chrome.i18n.getMessage("platform"), key: "Platform" },
   { title: chrome.i18n.getMessage("sell"), key: "Sell" },
-  { title: chrome.i18n.getMessage("rent"), key: "Rent" },
-  { title: chrome.i18n.getMessage("wantToBuy"), key: "WantToBuy" }
+  { title: chrome.i18n.getMessage("wantToBuy"), key: "WantToBuy" },
+  { title: chrome.i18n.getMessage("rent"), key: "Rent" }
 ] as const
 
 // ==================== Data Fetching ====================
@@ -192,10 +197,28 @@ const fetchSteamData = async (hashName: string): Promise<DataType> => {
   }
 }
 
-const fetchC5Data = async (hashName: string): Promise<DataType> => {
+const fetchC5Data = async (
+  hashName: string,
+  apiKey: string
+): Promise<DataType> => {
+  if (!apiKey) {
+    return createDataType(
+      "C5",
+      "",
+      hashName,
+      chrome.i18n.getMessage("c5NeedApiKey"),
+      "/"
+    )
+  }
+
   try {
-    const goodsId = c5Data[hashName]
-    if (!goodsId) {
+    const response = await getC5BatchPrice(apiKey, [hashName])
+    if (!response.success) {
+      throw new Error(`C5 API error: ${response.errorCode}`)
+    }
+
+    const item = response.data[hashName]
+    if (!item || item.price === undefined) {
       return createDataType(
         "C5",
         "",
@@ -204,17 +227,59 @@ const fetchC5Data = async (hashName: string): Promise<DataType> => {
         "/"
       )
     }
-    const price = await getC5GoodsInfo(goodsId)
+
+    const sellPrice = String(item.price)
+
+    let buyPrice = "/"
+    try {
+      buyPrice = await getC5MaxBuyPrice(apiKey, item.itemId)
+      console.log("[C5] buy price result:", item.itemId, "→", buyPrice)
+    } catch (e) {
+      console.error("[C5] buy price fetch failed:", e)
+    }
+
+    return createDataType("C5", item.itemId, hashName, sellPrice, buyPrice)
+  } catch (error) {
+    console.error("[C5] fetchC5Data error:", error)
     return createDataType(
       "C5",
-      goodsId,
+      "",
       hashName,
-      price || chrome.i18n.getMessage("notAvailable"),
+      chrome.i18n.getMessage("dataError"),
       "/"
     )
-  } catch (error) {
+  }
+}
+
+const fetchIgxeData = async (hashName: string): Promise<DataType> => {
+  const productId = igxeData[hashName]
+  if (!productId) {
     return createDataType(
-      "C5",
+      "IGXE",
+      "",
+      hashName,
+      chrome.i18n.getMessage("notFound"),
+      "/"
+    )
+  }
+  try {
+    const [sellPrice, buyPrice, rentPrice] = await Promise.all([
+      getIgxeSellPrice(String(productId)),
+      getIgxeBuyPrice(String(productId)),
+      getIgxeLeasePrice(String(productId))
+    ])
+    return createDataType(
+      "IGXE",
+      String(productId),
+      hashName,
+      sellPrice || chrome.i18n.getMessage("notAvailable"),
+      buyPrice || "/",
+      rentPrice
+    )
+  } catch (error) {
+    console.error("[IGXE] fetchIgxeData error:", error)
+    return createDataType(
+      "IGXE",
       "",
       hashName,
       chrome.i18n.getMessage("dataError"),
@@ -230,7 +295,7 @@ const Skeleton = () => (
     {[1, 2, 3, 4].map((i) => (
       <div
         key={i}
-        className="flex items-center gap-6 py-3 border-b border-border/50 last:border-0">
+        className="flex items-center gap-6 h-12 border-b border-border/50 last:border-0">
         <div className="w-14 h-3.5 bg-muted rounded-sm animate-pulse" />
         <div className="w-16 h-3.5 bg-muted rounded-sm animate-pulse" />
         <div className="w-20 h-3.5 bg-muted rounded-sm animate-pulse" />
@@ -260,7 +325,7 @@ const ErrorState = ({
 const WrongPageState = () => (
   <div
     className="flex flex-col items-center justify-center gap-4 bg-background px-6"
-    style={{ width: 480, height: 360 }}>
+    style={{ width: 480, height: 420 }}>
     <p className="text-sm text-muted-foreground text-center leading-relaxed">
       {chrome.i18n.getMessage("wrongPageMessage")}
     </p>
@@ -283,12 +348,22 @@ function IndexPopup() {
   const [goodsInfo, setGoodsInfo] = useState<Partial<GoodsInfo>>({})
   const [lang, setLang] = useState<string[]>([])
   const [error, setError] = useState<string>("")
+  const [c5ApiKey, setC5ApiKey] = useState<string>("")
+  const [c5KeyInput, setC5KeyInput] = useState<string>("")
+  const [c5Editing, setC5Editing] = useState<boolean>(false)
 
-  const loadData = async () => {
+  const saveC5ApiKey = async (key: string) => {
+    setC5ApiKey(key)
+    await chrome.storage.local.set({ c5ApiKey: key })
+  }
+
+  const loadData = async (c5Key?: string) => {
     const pageInfo = await sendToBackground({ name: "get-page-info" })
     setIsBuffPage(pageInfo.isBuffPage)
 
     if (!pageInfo.isBuffPage) return
+
+    const apiKey = c5Key ?? c5ApiKey
 
     setLoading(true)
     setError("")
@@ -309,9 +384,15 @@ function IndexPopup() {
         ),
         fetchUUYPData(hashName),
         fetchSteamData(hashName),
-        fetchC5Data(hashName)
+        fetchC5Data(hashName, apiKey),
+        fetchIgxeData(hashName)
       ])
-      setTableData(allPlatformData)
+      // BUFF first, Steam second, then the rest
+      const sorted = allPlatformData.sort((a, b) => {
+        const order: Record<string, number> = { Steam: 0, BUFF: 1 }
+        return (order[a.Platform] ?? 2) - (order[b.Platform] ?? 2)
+      })
+      setTableData(sorted)
     } catch (err) {
       setError(
         err instanceof Error
@@ -329,8 +410,16 @@ function IndexPopup() {
   }
 
   useEffect(() => {
-    loadLanguage()
-    loadData()
+    const init = async () => {
+      loadLanguage()
+      const stored = await chrome.storage.local.get("c5ApiKey")
+      const key = (stored.c5ApiKey as string) || ""
+      setC5ApiKey(key)
+      setC5KeyInput(key)
+      if (!key) setC5Editing(true)
+      loadData(key)
+    }
+    init()
   }, [])
 
   const priceStats = useMemo(() => {
@@ -376,9 +465,9 @@ function IndexPopup() {
   return (
     <div
       className="flex flex-col overflow-hidden bg-background"
-      style={{ width: 480, height: 360 }}>
+      style={{ width: 480, height: 420 }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
         <img
           src={goodsInfo.icon_url}
           alt={goodsInfo.name}
@@ -408,7 +497,7 @@ function IndexPopup() {
                   {TABLE_COLUMNS.map((column) => (
                     <th
                       key={column.key}
-                      className="px-4 py-2.5 text-left text-xs font-normal text-muted-foreground">
+                      className="px-4 py-2 text-left text-xs font-normal text-muted-foreground">
                       {column.title}
                     </th>
                   ))}
@@ -421,78 +510,164 @@ function IndexPopup() {
                     <tr
                       key={data.Platform}
                       onClick={() => handleRowClick(data)}
-                      className={`border-b border-border/50 last:border-0 transition-colors ${
+                      className={`h-12 border-b border-border/50 last:border-0 transition-colors ${
                         clickable
                           ? "cursor-pointer hover:bg-muted group"
                           : "cursor-default"
                       }`}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PLATFORM_COLORS[data.Platform] || "bg-gray-400"}`}
-                          />
-                          <span className="text-sm font-medium text-foreground">
-                            {data.Platform}
-                          </span>
-                          {clickable && (
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground text-xs ml-auto">
-                              →
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td
-                        className={`px-4 py-3 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
-                        {data.Sell === chrome.i18n.getMessage("notLoggedIn") ? (
-                          <a
-                            href="https://www.youpin898.com/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline underline-offset-2 hover:text-foreground transition-colors">
-                            {data.Sell}
-                          </a>
-                        ) : (
-                          formatPrice(data.Sell, data.Platform)
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {data.Rent.LeaseUnitPrice ? (
-                          <div className="space-y-1 text-xs">
-                            <div>
-                              {chrome.i18n.getMessage("shortTerm")}:{" "}
-                              <span className="tabular-nums">
-                                {formatPrice(
-                                  data.Rent.LeaseUnitPrice,
-                                  data.Platform
+                      {TABLE_COLUMNS.map((column) => {
+                        switch (column.key) {
+                          case "Platform":
+                            return (
+                              <td key={column.key} className="px-4 py-2">
+                                <div className="flex items-center gap-2.5">
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PLATFORM_COLORS[data.Platform] || "bg-gray-400"}`}
+                                  />
+                                  <span className="text-sm font-medium text-foreground">
+                                    {data.Platform}
+                                  </span>
+                                  {clickable && (
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground text-xs ml-auto">
+                                      →
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            )
+                          case "Sell":
+                            return (
+                              <td
+                                key={column.key}
+                                className={`px-4 py-2 text-sm tabular-nums ${getSellPriceClass(data.Platform, data.Sell)}`}>
+                                {data.Sell ===
+                                chrome.i18n.getMessage("notLoggedIn") ? (
+                                  <a
+                                    href="https://www.youpin898.com/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline underline-offset-2 hover:text-foreground transition-colors">
+                                    {data.Sell}
+                                  </a>
+                                ) : (
+                                  formatPrice(data.Sell, data.Platform)
                                 )}
-                              </span>
-                            </div>
-                            <div>
-                              {chrome.i18n.getMessage("longTerm")}:{" "}
-                              <span className="tabular-nums">
-                                {formatPrice(
-                                  data.Rent.LongLeaseUnitPrice,
-                                  data.Platform
+                              </td>
+                            )
+                          case "WantToBuy":
+                            return (
+                              <td
+                                key={column.key}
+                                className="px-4 py-2 text-sm tabular-nums text-foreground">
+                                {data.WantToBuy ? (
+                                  formatPrice(data.WantToBuy, data.Platform)
+                                ) : (
+                                  <span className="text-muted-foreground/40">
+                                    —
+                                  </span>
                                 )}
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/40">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm tabular-nums text-foreground">
-                        {data.WantToBuy ? (
-                          formatPrice(data.WantToBuy, data.Platform)
-                        ) : (
-                          <span className="text-muted-foreground/40">—</span>
-                        )}
-                      </td>
+                              </td>
+                            )
+                          case "Rent":
+                            return (
+                              <td
+                                key={column.key}
+                                className="px-4 py-2 text-sm text-muted-foreground align-middle">
+                                {data.Rent.LeaseUnitPrice ? (
+                                  <div className="space-y-1 text-xs">
+                                    <div>
+                                      {chrome.i18n.getMessage("shortTerm")}:{" "}
+                                      <span className="tabular-nums">
+                                        {formatPrice(
+                                          data.Rent.LeaseUnitPrice,
+                                          data.Platform
+                                        )}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      {chrome.i18n.getMessage("longTerm")}:{" "}
+                                      <span className="tabular-nums">
+                                        {formatPrice(
+                                          data.Rent.LongLeaseUnitPrice,
+                                          data.Platform
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground/40">
+                                    —
+                                  </span>
+                                )}
+                              </td>
+                            )
+                          default:
+                            return null
+                        }
+                      })}
                     </tr>
                   )
                 })}
               </tbody>
             </table>
+          </div>
+          {/* C5 API Settings */}
+          <div className="px-4 py-1.5 border-t border-border shrink-0 flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              C5
+            </span>
+            {c5Editing ? (
+              <>
+                <input
+                  type="text"
+                  value={c5KeyInput}
+                  onChange={(e) => setC5KeyInput(e.target.value)}
+                  placeholder="app-key"
+                  className="flex-1 h-6 px-2 text-[10px] border border-border rounded bg-background text-foreground focus:outline-none focus:border-foreground/30"
+                />
+                <a
+                  href="https://www.c5game.com/user/user/open-api"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  title={chrome.i18n.getMessage("c5ApiHelp")}>
+                  ?
+                </a>
+                <button
+                  onClick={() => {
+                    saveC5ApiKey(c5KeyInput)
+                    setC5Editing(false)
+                    loadData(c5KeyInput)
+                  }}
+                  className="h-6 px-2 text-[10px] bg-foreground text-background rounded hover:opacity-80 transition-opacity shrink-0">
+                  {chrome.i18n.getMessage("save")}
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="flex-1 text-[10px] text-muted-foreground truncate">
+                  {c5ApiKey
+                    ? "•".repeat(16)
+                    : chrome.i18n.getMessage("c5NotSet")}
+                </span>
+                {!c5ApiKey && (
+                  <a
+                    href="https://www.c5game.com/user/user/open-api"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                    {chrome.i18n.getMessage("c5GetKey")} →
+                  </a>
+                )}
+                <button
+                  onClick={() => setC5Editing(true)}
+                  className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                  {c5ApiKey
+                    ? chrome.i18n.getMessage("edit")
+                    : chrome.i18n.getMessage("set")}
+                </button>
+              </>
+            )}
           </div>
           <div className="px-4 py-1.5 border-t border-border/50 shrink-0 flex items-center justify-between">
             <a

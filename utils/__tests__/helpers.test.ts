@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   CNY_PLATFORMS,
   constructGoodsURL,
@@ -68,12 +69,16 @@ describe("formatPrice", () => {
     expect(formatPrice("2500", "C5")).toBe("¥ 2,500")
   })
 
-  it("returns Steam price unchanged", () => {
-    expect(formatPrice("$12.34 USD", "Steam")).toBe("$12.34 USD")
+  it("formats Steam price with CNY prefix", () => {
+    expect(formatPrice("12.34", "Steam")).toBe("¥ 12.34")
   })
 
   it("returns original string when parsePrice returns null", () => {
     expect(formatPrice("N/A", "BUFF")).toBe("N/A")
+  })
+
+  it("formats IGXE price with ¥ prefix", () => {
+    expect(formatPrice("580", "IGXE")).toBe("¥ 580")
   })
 
   it("returns original for unknown platform", () => {
@@ -85,23 +90,33 @@ describe("formatPrice", () => {
 
 describe("constructGoodsURL", () => {
   it("builds Steam URL using hashName", () => {
-    expect(constructGoodsURL("Steam", "176116429", "AK-47 | Redline"))
-      .toBe("https://steamcommunity.com/market/listings/730/AK-47 | Redline")
+    expect(constructGoodsURL("Steam", "176116429", "AK-47 | Redline")).toBe(
+      "https://steamcommunity.com/market/listings/730/AK-47 | Redline"
+    )
   })
 
   it("builds BUFF URL using goodsID", () => {
-    expect(constructGoodsURL("BUFF", "12345", "AK-47 | Redline"))
-      .toBe("https://buff.163.com/goods/12345")
+    expect(constructGoodsURL("BUFF", "12345", "AK-47 | Redline")).toBe(
+      "https://buff.163.com/goods/12345"
+    )
   })
 
   it("builds UUYP URL using goodsID", () => {
-    expect(constructGoodsURL("UUYP", "67890", "AK-47 | Redline"))
-      .toBe("https://www.youpin898.com/market/goods-list?listType=20&templateId=67890&gameId=730")
+    expect(constructGoodsURL("UUYP", "67890", "AK-47 | Redline")).toBe(
+      "https://www.youpin898.com/market/goods-list?listType=20&templateId=67890&gameId=730"
+    )
   })
 
   it("builds C5 URL using goodsID", () => {
-    expect(constructGoodsURL("C5", "11111", "AK-47 | Redline"))
-      .toBe("https://www.c5game.com/csgo/11111")
+    expect(constructGoodsURL("C5", "11111", "AK-47 | Redline")).toBe(
+      "https://www.c5game.com/csgo/11111"
+    )
+  })
+
+  it("builds IGXE URL using goodsID", () => {
+    expect(constructGoodsURL("IGXE", "681453", "AWP | Chrome Cannon")).toBe(
+      "https://www.igxe.cn/product/730/681453"
+    )
   })
 
   it("returns empty string for unknown platform", () => {
@@ -144,6 +159,25 @@ describe("createDataType", () => {
     expect(result.Sell).toBe("")
     expect(result.WantToBuy).toBe("")
   })
+
+  it("creates IGXE DataType with rent prices", () => {
+    const result = createDataType(
+      "IGXE",
+      "681453",
+      "AWP | Chrome Cannon",
+      "580.00",
+      "684.00",
+      { LeaseUnitPrice: "0.75", LongLeaseUnitPrice: "0.69" }
+    )
+    expect(result).toEqual({
+      Platform: "IGXE",
+      GoodsID: "681453",
+      MarkingHashName: "AWP | Chrome Cannon",
+      Sell: "580.00",
+      WantToBuy: "684.00",
+      Rent: { LeaseUnitPrice: "0.75", LongLeaseUnitPrice: "0.69" }
+    })
+  })
 })
 
 // ---- isClickable ----
@@ -179,11 +213,7 @@ describe("isClickable", () => {
 // ---- CNY_PLATFORMS ----
 
 describe("CNY_PLATFORMS", () => {
-  it("includes BUFF, UUYP, C5", () => {
-    expect(CNY_PLATFORMS).toEqual(["BUFF", "UUYP", "C5"])
-  })
-
-  it("does not include Steam", () => {
-    expect(CNY_PLATFORMS).not.toContain("Steam")
+  it("includes BUFF, UUYP, C5, IGXE, Steam", () => {
+    expect(CNY_PLATFORMS).toEqual(["BUFF", "UUYP", "C5", "IGXE", "Steam"])
   })
 })

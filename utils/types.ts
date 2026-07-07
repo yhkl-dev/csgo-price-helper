@@ -203,150 +203,19 @@ export interface BuyOrderTable {
   quantity: string
 }
 
-export interface C5GoodsResponse {
+export interface C5BatchPriceResponse {
   success: boolean
-  data: Data
+  data: Record<string, C5BatchPriceItem>
   errorCode: number
-  errorMsg: any
-  errorData: any
-  errorCodeStr: any
+  errorMsg: string | null
+  errorData: unknown
+  errorCodeStr: unknown
 }
 
-export interface Data {
-  total: number
-  pages: number
-  page: number
-  limit: number
-  list: List[]
-}
-
-export interface List {
-  id: string
-  sellerInfo: SellerInfo
-  systemTime: any
-  appId: number
-  appName: any
+export interface C5BatchPriceItem {
   itemId: string
-  itemName: string
   marketHashName: string
-  price: string
-  subsidyPrice: string
-  sellerPrice: any
-  cnyPrice: string
-  imageUrl: string
-  compensateType: any
-  delivery: number
-  acceptBargain: number
-  description: string
-  classInfoId: any
-  inspectUrl: any
-  inspectViewable: number
-  inspectable: any
-  inspectImageUrl: string
-  assetInfo: AssetInfo
-  inspect3dViewable: number
-  inspect3dUrl: string
-  token: string
-  itemInfo: ItemInfo
-  isCollection: number
-  wearRank: number
-  inspectOriginalUrl: string
-}
-
-export interface SellerInfo {
-  userId: string
-  platformId: number
-  thirdUserId: string
-  nickname: string
-  avatar: string
-  verified: any
-  lastActive: any
-  deliveryInfo: DeliveryInfo
-}
-
-export interface DeliveryInfo {
-  day7: Day7
-  day15: Day15
-}
-
-export interface Day7 {
-  deliverySuccessRate: string
-  deliveryAvgTime: string
-  deliveryNoneNum: number
-}
-
-export interface Day15 {
-  deliverySuccessRate: string
-  deliveryAvgTime: string
-  deliveryNoneNum: number
-}
-
-export interface AssetInfo {
-  classInfoId: string
-  classId: string
-  instanceId: string
-  assetId: string
-  styleId: string
-  lastStyle: string
-  styleProgress: string
-  wear: string
-  paintIndex: number
-  paintSeed: number
-  levelName: string
-  levelColor: string
-  gradient: string
-  fadeColor: string
-  inspectImageUrl: string
-  gems: any[]
-  stickers: Sticker[]
-  styles: any[]
-  itemSets: any[]
-  ext: string
-  fraudwarning: string
-}
-
-export interface Sticker {
-  id: string
-  type: number
-  stickerId: string
-  itemId: string
-  name: string
-  enName: string
-  image: string
-  slot: number
-  wear: string
-  price: any
-}
-
-export interface ItemInfo {
-  quality: string
-  qualityName: string
-  qualityColor: string
-  rarity: string
-  rarityName: string
-  rarityColor: string
-  type: string
-  typeName: string
-  slot: string
-  slotName: string
-  hero: string
-  heroName: string
-  heroAvatar: string
-  exterior: string
-  exteriorName: string
-  exteriorColor: string
-  weapon: string
-  weaponName: string
-  itemSet: string
-  itemSetName: string
-  stickerCapsule: string
-  stickerCapsuleName: string
-  patchCapsule: string
-  patchCapsuleName: string
-  customPlayer: string
-  customPlayerName: string
-  category: string
-  categoryName: string
-  item: string
-  itemName: any
+  price: number
+  count: number
+  website: string
 }

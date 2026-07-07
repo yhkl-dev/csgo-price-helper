@@ -54,18 +54,18 @@
             Compare prices across platforms
         </text>
         <text x="0" y="105" font-family="Arial, sans-serif" font-size="14" fill="#64748B">
-            Steam, BUFF, UUYP &amp; C5
+            Steam, BUFF, UUYP, C5 &amp; IGXE
         </text>
 
         <!-- Features -->
         <g transform="translate(0, 130)">
             <circle cx="8" cy="8" r="4" fill="#3B82F6" />
-            <text x="20" y="12" font-family="Arial, sans-serif" font-size="12" fill="#475569">Real-time
-                price updates</text>
+            <text x="20" y="12" font-family="Arial, sans-serif" font-size="12" fill="#475569">Sell,
+                buy &amp; rent prices</text>
 
             <circle cx="8" cy="30" r="4" fill="#3B82F6" />
-            <text x="20" y="34" font-family="Arial, sans-serif" font-size="12" fill="#475569">Instant
-                platform comparison</text>
+            <text x="20" y="34" font-family="Arial, sans-serif" font-size="12" fill="#475569">5
+                platforms, one click</text>
         </g>
     </g>
 </svg>

@@ -4,6 +4,7 @@ import {
   convertCookiesToString,
   decodeJWT,
   getUUYPAuthHeaders,
+  getUUYPuserInfo,
   searchForExactNameId
 } from "../goods"
 import type { UUYPDeviceInfo } from "../goods"
@@ -124,5 +125,49 @@ describe("convertCookiesToString", () => {
   it("handles single cookie", () => {
     const cookies = [{ name: "auth", value: "val" }] as chrome.cookies.Cookie[]
     expect(convertCookiesToString(cookies)).toBe("auth=val")
+  })
+})
+
+// ---- getUUYPuserInfo ----
+
+describe("getUUYPuserInfo", () => {
+  const makeToken = (payload: Record<string, unknown>): { value: string } => {
+    const encoded = btoa(JSON.stringify(payload))
+    return { value: `header.${encoded}.sig` }
+  }
+
+  it("returns user ID from valid JWT", async () => {
+    const token = makeToken({ Id: "12345", exp: 9999999999 })
+    const result = await getUUYPuserInfo(token)
+    expect(result).toBe("12345")
+  })
+
+  it("throws UUYP_NOT_LOGIN when JWT has no Id field", async () => {
+    const token = makeToken({ exp: 9999999999 })
+    await expect(getUUYPuserInfo(token)).rejects.toThrow("UUYP_NOT_LOGIN")
+  })
+
+  it("throws UUYP_NOT_LOGIN when JWT is expired", async () => {
+    const token = makeToken({ Id: "12345", exp: 1 })
+    await expect(getUUYPuserInfo(token)).rejects.toThrow("UUYP_NOT_LOGIN")
+  })
+
+  it("returns ID when JWT has no exp field", async () => {
+    const token = makeToken({ Id: "67890" })
+    const result = await getUUYPuserInfo(token)
+    expect(result).toBe("67890")
+  })
+
+  it("returns ID when JWT exp is in the future", async () => {
+    const futureExp = Math.floor(Date.now() / 1000) + 3600
+    const token = makeToken({ Id: "active-user", exp: futureExp })
+    const result = await getUUYPuserInfo(token)
+    expect(result).toBe("active-user")
+  })
+
+  it("returns numeric Id as string", async () => {
+    const token = makeToken({ Id: 999 })
+    const result = await getUUYPuserInfo(token)
+    expect(result).toBe("999")
   })
 })
