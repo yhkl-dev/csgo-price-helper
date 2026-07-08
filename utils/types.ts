@@ -114,65 +114,6 @@ export interface DataType {
   MarkingHashName: string
 }
 
-export interface BuffGoodsItem {
-  allow_bargain: boolean
-  allow_bargain_chat: boolean
-  appid: number
-  asset_info: AssetInfo
-  background_image_url: string
-  bookmarked: boolean
-  can_bargain: boolean
-  can_bargain_chat: boolean
-  can_use_inspect_trn_url: boolean
-  cannot_bargain_reason: string
-  created_at: number
-  description: string
-  featured: number
-  fee: string
-  game: string
-  goods_id: number
-  id: string
-  img_src: string
-  income: string
-  lowest_bargain_price: string
-  mode: number
-  price: string
-  recent_average_duration: number
-  recent_deliver_rate: number
-  state: number
-  sticker_premium: any
-  supported_pay_methods: number[]
-  tradable_cooldown: any
-  updated_at: number
-  user_id: string
-}
-
-export interface AssetInfo {
-  action_link: string
-  appid: number
-  assetid: string
-  classid: string
-  contextid: number
-  goods_id: number
-  has_tradable_cooldown: boolean
-  id: string
-  info: Info
-  instanceid: string
-  paintwear: string
-  tradable_cooldown_text: string
-  tradable_unfrozen_time: any
-}
-
-export interface Info {
-  fraudwarnings: any
-  icon_url: string
-  original_icon_url: string
-  paintindex: number
-  paintseed: number
-  stickers: any[]
-  tournament_tags: any[]
-}
-
 export interface SteamGoodsResponse {
   success: number
   sell_order_count: string

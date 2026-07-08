@@ -1,6 +1,8 @@
 name: Test
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -22,5 +24,11 @@ jobs:
           version: 10.30.2
           run_install: true
 
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
       - name: Run tests
         run: pnpm test
+
+      - name: Build extension
+        run: pnpm build

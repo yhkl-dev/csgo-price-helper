@@ -2,34 +2,24 @@ import { useEffect, useMemo, useState } from "react"
 
 import { sendToBackground } from "@plasmohq/messaging"
 
+import { useC5ApiKey } from "~hooks/useC5ApiKey"
+import { getCachedPrices, setCachedPrices } from "~utils/cache"
 import {
-  getBUFFGoodsInfo,
-  getBUFFwantToBuyPrice,
-  getC5BatchPrice,
-  getC5MaxBuyPrice,
-  getIgxeBuyPrice,
-  getIgxeLeasePrice,
-  getIgxeSellPrice,
-  getSteamGoodsInfo,
-  getUUPriceInfo,
-  getUURentPriceInfo,
-  getUUwantToBuyPrice,
-  getUUYPuserInfo,
-  searchForExactNameId
-} from "~utils/goods"
+  fetchBuffData,
+  fetchC5Data,
+  fetchIgxeData,
+  fetchSteamData,
+  fetchUUYPData
+} from "~utils/fetch-data"
 import {
-  CNY_PLATFORMS,
   constructGoodsURL,
   createDataType,
   formatPrice,
   isClickable,
-  parsePrice,
-  PLATFORM_URLS
+  parsePrice
 } from "~utils/helpers"
+import { searchItems } from "~utils/search"
 import type { DataType, GoodsInfo } from "~utils/types"
-
-import igxeData from "./SteamTradingSite-ID-Mapper/igxe/730.json"
-import uuData from "./SteamTradingSite-ID-Mapper/uuyp/730.json"
 
 import "./style.css"
 
@@ -41,11 +31,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   IGXE: "bg-cyan-500"
 }
 
-const PLATFORM_COOKIES_URLS = {
-  BUFF: "https://buff.163.com",
-  UUYP: "https://www.youpin898.com/"
-} as const
-
 const TABLE_COLUMNS = [
   { title: chrome.i18n.getMessage("platform"), key: "Platform" },
   { title: chrome.i18n.getMessage("sell"), key: "Sell" },
@@ -53,246 +38,11 @@ const TABLE_COLUMNS = [
   { title: chrome.i18n.getMessage("rent"), key: "Rent" }
 ] as const
 
-// ==================== Data Fetching ====================
-
-const fetchCookies = async (url: string): Promise<chrome.cookies.Cookie[]> => {
-  const cookies = await sendToBackground({
-    name: "get-cookies",
-    body: { url }
-  })
-  return cookies as chrome.cookies.Cookie[]
-}
-
-const fetchBuffData = async (buffGoodsId: string) => {
-  const cookies = await fetchCookies(PLATFORM_COOKIES_URLS.BUFF)
-  const [goodsResponse, wantToBuyPrice] = await Promise.all([
-    getBUFFGoodsInfo(buffGoodsId, cookies),
-    getBUFFwantToBuyPrice(buffGoodsId, cookies)
-  ])
-
-  if (!goodsResponse?.data?.items?.[0]?.price) {
-    throw new Error("Failed to fetch BUFF goods data")
-  }
-
-  return {
-    goodsInfo: goodsResponse.data.goods_infos[buffGoodsId],
-    sellPrice: goodsResponse.data.items[0].price,
-    wantToBuyPrice
-  }
-}
-
-const fetchUUYPData = async (hashName: string): Promise<DataType> => {
-  try {
-    const cookies = await fetchCookies(PLATFORM_COOKIES_URLS.UUYP)
-
-    const TOKEN_NAMES = [
-      "uu_token",
-      "token",
-      "access_token",
-      "auth_token",
-      "jwt",
-      "authorization"
-    ]
-    const token = cookies.find((cookie) => TOKEN_NAMES.includes(cookie.name))
-
-    if (!token) {
-      return createDataType(
-        "UUYP",
-        "",
-        hashName,
-        chrome.i18n.getMessage("notLoggedIn"),
-        ""
-      )
-    }
-
-    const stored = await chrome.storage.local.get("uuypDevice")
-    const storedDevice = (stored?.uuypDevice as Record<string, string>) || {}
-    const device = {
-      deviceId: storedDevice.deviceId || "",
-      deviceUk: storedDevice.deviceUk || "",
-      uk: storedDevice.uk || ""
-    }
-
-    const goodsId = uuData[hashName]
-    if (!goodsId) {
-      return createDataType(
-        "UUYP",
-        "",
-        hashName,
-        chrome.i18n.getMessage("notFound"),
-        ""
-      )
-    }
-
-    const userId = await getUUYPuserInfo(token)
-
-    const [sellPrice, rentPrice, wantToBuyPrice] = await Promise.all([
-      getUUPriceInfo(token, userId, goodsId, device),
-      getUURentPriceInfo(token, userId, goodsId, device),
-      getUUwantToBuyPrice(token, goodsId, device)
-    ])
-
-    return createDataType(
-      "UUYP",
-      goodsId,
-      hashName,
-      sellPrice || chrome.i18n.getMessage("notAvailable"),
-      String(wantToBuyPrice || chrome.i18n.getMessage("notAvailable")),
-      {
-        LeaseUnitPrice: rentPrice?.LeaseUnitPrice || "",
-        LongLeaseUnitPrice: rentPrice?.LongLeaseUnitPrice || ""
-      }
-    )
-  } catch (err) {
-    if (err instanceof Error && err.message === "UUYP_NOT_LOGIN") {
-      return createDataType(
-        "UUYP",
-        "",
-        hashName,
-        chrome.i18n.getMessage("notLoggedIn"),
-        ""
-      )
-    }
-    return createDataType(
-      "UUYP",
-      "",
-      hashName,
-      chrome.i18n.getMessage("networkError"),
-      ""
-    )
-  }
-}
-
-const fetchSteamData = async (hashName: string): Promise<DataType> => {
-  const nameId = searchForExactNameId(hashName)
-  try {
-    if (!nameId) {
-      return createDataType(
-        "Steam",
-        "",
-        hashName,
-        chrome.i18n.getMessage("notFound"),
-        "/"
-      )
-    }
-    const res = await getSteamGoodsInfo(nameId)
-    const prefix = res.price_prefix || ""
-    const sellPrice =
-      prefix +
-      (res.sell_order_price?.split(" ")?.[1] ||
-        chrome.i18n.getMessage("notAvailable"))
-    const buyPrice =
-      prefix +
-      (res.buy_order_price?.split(" ")?.[1] ||
-        chrome.i18n.getMessage("notAvailable"))
-    return createDataType("Steam", nameId, hashName, sellPrice, buyPrice)
-  } catch (error) {
-    return createDataType(
-      "Steam",
-      "",
-      hashName,
-      chrome.i18n.getMessage("networkError"),
-      "/"
-    )
-  }
-}
-
-const fetchC5Data = async (
-  hashName: string,
-  apiKey: string
-): Promise<DataType> => {
-  if (!apiKey) {
-    return createDataType(
-      "C5",
-      "",
-      hashName,
-      chrome.i18n.getMessage("c5NeedApiKey"),
-      "/"
-    )
-  }
-
-  try {
-    const response = await getC5BatchPrice(apiKey, [hashName])
-    if (!response.success) {
-      throw new Error(`C5 API error: ${response.errorCode}`)
-    }
-
-    const item = response.data[hashName]
-    if (!item || item.price === undefined) {
-      return createDataType(
-        "C5",
-        "",
-        hashName,
-        chrome.i18n.getMessage("notFound"),
-        "/"
-      )
-    }
-
-    const sellPrice = String(item.price)
-
-    let buyPrice = "/"
-    try {
-      buyPrice = await getC5MaxBuyPrice(apiKey, item.itemId)
-      console.log("[C5] buy price result:", item.itemId, "→", buyPrice)
-    } catch (e) {
-      console.error("[C5] buy price fetch failed:", e)
-    }
-
-    return createDataType("C5", item.itemId, hashName, sellPrice, buyPrice)
-  } catch (error) {
-    console.error("[C5] fetchC5Data error:", error)
-    return createDataType(
-      "C5",
-      "",
-      hashName,
-      chrome.i18n.getMessage("dataError"),
-      "/"
-    )
-  }
-}
-
-const fetchIgxeData = async (hashName: string): Promise<DataType> => {
-  const productId = igxeData[hashName]
-  if (!productId) {
-    return createDataType(
-      "IGXE",
-      "",
-      hashName,
-      chrome.i18n.getMessage("notFound"),
-      "/"
-    )
-  }
-  try {
-    const [sellPrice, buyPrice, rentPrice] = await Promise.all([
-      getIgxeSellPrice(String(productId)),
-      getIgxeBuyPrice(String(productId)),
-      getIgxeLeasePrice(String(productId))
-    ])
-    return createDataType(
-      "IGXE",
-      String(productId),
-      hashName,
-      sellPrice || chrome.i18n.getMessage("notAvailable"),
-      buyPrice || "/",
-      rentPrice
-    )
-  } catch (error) {
-    console.error("[IGXE] fetchIgxeData error:", error)
-    return createDataType(
-      "IGXE",
-      "",
-      hashName,
-      chrome.i18n.getMessage("dataError"),
-      "/"
-    )
-  }
-}
-
 // ==================== Sub-Components ====================
 
 const Skeleton = () => (
   <div className="flex-1 px-4 py-2 space-y-0">
-    {[1, 2, 3, 4].map((i) => (
+    {[1, 2, 3, 4, 5].map((i) => (
       <div
         key={i}
         className="flex items-center gap-6 h-12 border-b border-border/50 last:border-0">
@@ -339,6 +89,53 @@ const WrongPageState = () => (
   </div>
 )
 
+const SearchPage = ({ onSelect }: { onSelect: (hashName: string) => void }) => {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<{ en_name: string }[]>([])
+
+  const handleInput = (value: string) => {
+    setQuery(value)
+    setResults(value.trim() ? searchItems(value) : [])
+  }
+
+  return (
+    <div
+      className="flex flex-col bg-background"
+      style={{ width: 480, height: 420 }}>
+      <div className="px-4 py-3 border-b border-border">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => handleInput(e.target.value)}
+          placeholder={chrome.i18n.getMessage("searchPlaceholder")}
+          autoFocus
+          className="w-full h-9 px-3 text-sm border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/30"
+        />
+      </div>
+      <div className="flex-1 overflow-auto">
+        {results.map((item) => (
+          <button
+            key={item.en_name}
+            onClick={() => onSelect(item.en_name)}
+            className="w-full text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted border-b border-border/50 last:border-0 transition-colors">
+            {item.en_name}
+          </button>
+        ))}
+        {query.trim() && results.length === 0 && (
+          <p className="px-4 py-8 text-sm text-muted-foreground text-center">
+            {chrome.i18n.getMessage("noResults")}
+          </p>
+        )}
+        {!query.trim() && (
+          <p className="px-4 py-8 text-sm text-muted-foreground text-center">
+            {chrome.i18n.getMessage("searchHint")}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ==================== Main Component ====================
 
 function IndexPopup() {
@@ -348,17 +145,39 @@ function IndexPopup() {
   const [goodsInfo, setGoodsInfo] = useState<Partial<GoodsInfo>>({})
   const [lang, setLang] = useState<string[]>([])
   const [error, setError] = useState<string>("")
-  const [c5ApiKey, setC5ApiKey] = useState<string>("")
-  const [c5KeyInput, setC5KeyInput] = useState<string>("")
-  const [c5Editing, setC5Editing] = useState<boolean>(false)
+  const [initialized, setInitialized] = useState<boolean>(false)
+  const [searchMode, setSearchMode] = useState<boolean>(false)
 
-  const saveC5ApiKey = async (key: string) => {
-    setC5ApiKey(key)
-    await chrome.storage.local.set({ c5ApiKey: key })
+  const onKeyReady = (key: string) => {
+    if (!initialized) {
+      setInitialized(true)
+      loadData(key)
+    }
+  }
+
+  const fetchAndCache = async (
+    hashName: string,
+    fetcher: () => Promise<DataType[]>,
+    sortOrder: Record<string, number>
+  ): Promise<DataType[]> => {
+    const cached = await getCachedPrices(hashName)
+    if (cached) return cached
+
+    const allPlatformData = await fetcher()
+    const sorted = allPlatformData.sort((a, b) => {
+      return (sortOrder[a.Platform] ?? 99) - (sortOrder[b.Platform] ?? 99)
+    })
+    await setCachedPrices(hashName, sorted)
+    return sorted
   }
 
   const loadData = async (c5Key?: string) => {
+    setSearchMode(false)
     const pageInfo = await sendToBackground({ name: "get-page-info" })
+    if (!pageInfo) {
+      setError(chrome.i18n.getMessage("loadFailed"))
+      return
+    }
     setIsBuffPage(pageInfo.isBuffPage)
 
     if (!pageInfo.isBuffPage) return
@@ -372,27 +191,60 @@ function IndexPopup() {
       setGoodsInfo(buffData.goodsInfo)
 
       const hashName = buffData.goodsInfo.market_hash_name
-      const allPlatformData = await Promise.all([
-        Promise.resolve(
-          createDataType(
-            "BUFF",
-            pageInfo.buffGoodsId,
-            hashName,
-            buffData.sellPrice,
-            buffData.wantToBuyPrice
-          )
-        ),
-        fetchUUYPData(hashName),
-        fetchSteamData(hashName),
-        fetchC5Data(hashName, apiKey),
-        fetchIgxeData(hashName)
-      ])
-      // BUFF first, Steam second, then the rest
-      const sorted = allPlatformData.sort((a, b) => {
-        const order: Record<string, number> = { Steam: 0, BUFF: 1 }
-        return (order[a.Platform] ?? 2) - (order[b.Platform] ?? 2)
-      })
+
+      const sorted = await fetchAndCache(
+        hashName,
+        () =>
+          Promise.all([
+            Promise.resolve(
+              createDataType(
+                "BUFF",
+                pageInfo.buffGoodsId,
+                hashName,
+                buffData.sellPrice,
+                buffData.wantToBuyPrice
+              )
+            ),
+            fetchUUYPData(hashName),
+            fetchSteamData(hashName),
+            fetchC5Data(hashName, apiKey),
+            fetchIgxeData(hashName)
+          ]),
+        { Steam: 0, BUFF: 1 }
+      )
       setTableData(sorted)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : chrome.i18n.getMessage("loadFailed")
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadDataByHashName = async (hashName: string) => {
+    const apiKey = c5ApiKey
+
+    setLoading(true)
+    setError("")
+    setSearchMode(true)
+
+    try {
+      const sorted = await fetchAndCache(
+        hashName,
+        () =>
+          Promise.all([
+            fetchUUYPData(hashName),
+            fetchSteamData(hashName),
+            fetchC5Data(hashName, apiKey),
+            fetchIgxeData(hashName)
+          ]),
+        { Steam: 0 }
+      )
+      setTableData(sorted)
+      setGoodsInfo({ market_hash_name: hashName, name: hashName })
     } catch (err) {
       setError(
         err instanceof Error
@@ -409,24 +261,26 @@ function IndexPopup() {
     setLang(languages)
   }
 
+  const {
+    c5ApiKey,
+    c5KeyInput,
+    c5Editing,
+    setC5KeyInput,
+    setC5Editing,
+    saveC5ApiKey,
+    initC5ApiKey
+  } = useC5ApiKey(onKeyReady)
+
   useEffect(() => {
-    const init = async () => {
-      loadLanguage()
-      const stored = await chrome.storage.local.get("c5ApiKey")
-      const key = (stored.c5ApiKey as string) || ""
-      setC5ApiKey(key)
-      setC5KeyInput(key)
-      if (!key) setC5Editing(true)
-      loadData(key)
-    }
-    init()
+    loadLanguage()
+    initC5ApiKey()
   }, [])
 
   const priceStats = useMemo(() => {
     const sellPrices = tableData
       .map((d) => ({ platform: d.Platform, price: parsePrice(d.Sell) }))
       .filter((p) => p.price !== null)
-    if (sellPrices.length < 2) return { min: null, max: null }
+    if (sellPrices.length < 2) return { minPlatform: null, maxPlatform: null }
     const prices = sellPrices.map((p) => p.price!)
     return {
       minPlatform: sellPrices.find((p) => p.price === Math.min(...prices))!
@@ -458,8 +312,8 @@ function IndexPopup() {
     if (url) window.open(url, "_blank")
   }
 
-  if (!isBuffPage) {
-    return <WrongPageState />
+  if (!isBuffPage && !searchMode && tableData.length === 0 && !loading) {
+    return <SearchPage onSelect={loadDataByHashName} />
   }
 
   return (
@@ -470,8 +324,11 @@ function IndexPopup() {
       <div className="flex items-center gap-3 px-4 py-2 border-b border-border shrink-0">
         <img
           src={goodsInfo.icon_url}
-          alt={goodsInfo.name}
+          alt={goodsInfo.name || ""}
           className="w-7 h-7 rounded-sm flex-shrink-0"
+          onError={(e) => {
+            ;(e.target as HTMLImageElement).style.display = "none"
+          }}
         />
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-foreground truncate">

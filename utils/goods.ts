@@ -3,9 +3,9 @@ import { sendToBackground } from "@plasmohq/messaging"
 import steamData from "../SteamTradingSite-ID-Mapper/steam/730.json"
 import type { C5BatchPriceResponse, SteamGoodsResponse } from "./types"
 
-export const searchForExactNameId = (searchTerm: string): string => {
+export const searchForExactNameId = (searchTerm: string): string | null => {
   for (const key in steamData) {
-    if (steamData.hasOwnProperty(key)) {
+    if (Object.hasOwn(steamData, key)) {
       const item = steamData[key]
       if (item.en_name === searchTerm) {
         return item.name_id
@@ -59,7 +59,7 @@ export const getBUFFwantToBuyPrice = async (
     throw new Error("Network response was not ok")
   }
   const goodsInfo = await goodsResponse.json()
-  return goodsInfo.data.items.length > 0 ? goodsInfo.data.items[0].price : {}
+  return goodsInfo.data.items.length > 0 ? goodsInfo.data.items[0].price : ""
 }
 
 export const getBUFFGoodsInfo = async (
@@ -321,19 +321,14 @@ export const getC5MaxBuyPrice = async (
   itemId: string
 ): Promise<string> => {
   const url = `https://openapi.c5game.com/merchant/purchase/v1/max-price?itemId=${itemId}&app-key=${appKey}`
-  console.log("[C5] buy request:", url)
 
   const response = await fetch(url)
-  console.log("[C5] buy response status:", response.status)
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "")
-    console.error("[C5] buy response body:", body.slice(0, 300))
     throw new Error(`C5 buy price API error: ${response.status}`)
   }
 
   const data = await response.json()
-  console.log("[C5] buy response data:", JSON.stringify(data))
   return String(data.data?.maxPrice ?? "")
 }
 
