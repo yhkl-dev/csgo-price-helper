@@ -106,5 +106,17 @@
   "feedback": {
     "message": "Feedback",
     "description": "Link to GitHub issues for feedback"
+  },
+  "searchPlaceholder": {
+    "message": "Search items by name...",
+    "description": "Placeholder for search input"
+  },
+  "noResults": {
+    "message": "No items found",
+    "description": "Shown when search returns no results"
+  },
+  "searchHint": {
+    "message": "Type to search for CS2 items across all platforms",
+    "description": "Hint shown in empty search state"
   }
 }

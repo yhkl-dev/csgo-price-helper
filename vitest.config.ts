@@ -13,6 +13,7 @@ export default defineConfig({
     setupFiles: ["./test/setup.ts"],
     coverage: {
       include: ["utils/**/*.ts"],
+      // @ts-expect-error — `all` is a valid Vitest runtime option but missing from v4 CoverageOptions types
       all: true
     }
   }

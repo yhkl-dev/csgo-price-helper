@@ -11,6 +11,10 @@ const handler: PlasmoMessaging.MessageHandler<
   RequestResponse
 > = async (req, res) => {
   chrome.cookies.getAll({ url: req.body.url }, function (cookies) {
+    if (chrome.runtime.lastError) {
+      res.send([])
+      return
+    }
     res.send(cookies)
   })
 }

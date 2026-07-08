@@ -106,5 +106,17 @@
   "feedback": {
     "message": "反馈",
     "description": "Link to GitHub issues for feedback"
+  },
+  "searchPlaceholder": {
+    "message": "搜索饰品名称...",
+    "description": "Placeholder for search input"
+  },
+  "noResults": {
+    "message": "未找到相关饰品",
+    "description": "Shown when search returns no results"
+  },
+  "searchHint": {
+    "message": "输入关键词搜索 CS2 饰品",
+    "description": "Hint shown in empty search state"
   }
 }

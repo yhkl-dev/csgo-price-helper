@@ -17,7 +17,18 @@ const messages: Record<string, string> = {
   rent: "Rent",
   wantToBuy: "Want to Buy",
   shortTerm: "Short",
-  longTerm: "Long"
+  longTerm: "Long",
+  c5NeedApiKey: "Set API Key ↓",
+  c5NotSet: "Not configured",
+  c5GetKey: "Get API Key",
+  c5ApiHelp: "Get your app-key from C5 OpenAPI dashboard",
+  edit: "Edit",
+  set: "Set",
+  save: "Save",
+  searchPlaceholder: "Search items by name...",
+  noResults: "No items found",
+  searchHint: "Type to search for CS2 items across all platforms",
+  day: "day"
 }
 
 vi.stubGlobal("chrome", {
