@@ -1,7 +1,7 @@
 {
   "name": "csgo-price-helper",
   "displayName": "CS2 Price Helper - 饰品比价助手",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CS2饰品比价助手：对比BUFF/悠悠有品/Steam/C5/IGXE售价、求购价、租金。Compare CS2 prices across 5 platforms.",
   "author": "kaiyang939325@gmail.com",
   "scripts": {
