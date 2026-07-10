@@ -4,14 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Chrome extension built on [Plasmo](https://docs.plasmo.com/) v0.90.5 (React 18 + TypeScript 5.3). Compares CS2 item prices (sell orders, buy orders, rental prices) across five trading platforms: BUFF, UUYP, Steam, C5, and IGXE.
+Cross-browser extension built on [Plasmo](https://docs.plasmo.com/) v0.90.5 (React 18 + TypeScript 5.3). Compares CS2 item prices (sell orders, buy orders, rental prices) across five trading platforms: BUFF, UUYP, Steam, C5, and IGXE. Targets Chrome Web Store and Microsoft Edge Add-ons.
 
 ## Commands
 
 ```bash
-pnpm dev              # Development mode (hot reload)
+pnpm dev              # Development mode (hot reload, Chrome target)
 pnpm build            # Production build → build/chrome-mv3-prod/
+pnpm build:edge       # Production build for Edge → build/edge-mv3-prod/
 pnpm package          # Package as Chrome Web Store zip
+pnpm package:edge     # Package as Edge Add-ons zip
 pnpm test             # Run Vitest tests once
 pnpm test:watch       # Run tests in watch mode
 pnpm test:coverage    # Run tests with coverage report
@@ -110,4 +112,8 @@ Coverage is configured for `utils/**/*.ts` files. All pure utility functions in 
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/submit.yml`) triggers on `workflow_dispatch`. Builds with Node 20 + pnpm 10.30.2, creates a GitHub Release with the packaged zip, and publishes to Chrome Web Store via `PlasmoHQ/bpp`. The repo uses git submodules — CI must checkout with `submodules: true`.
+GitHub Actions (`.github/workflows/submit.yml`) triggers on `workflow_dispatch`. Builds with Node 20 + pnpm 10.30.2, creates a GitHub Release with the packaged zip, and publishes to Chrome Web Store via `PlasmoHQ/bpp`.
+
+Edge Add-ons submit workflow (`.github/workflows/submit-edge.yml`) also triggers on `workflow_dispatch`. Builds for `edge-mv3` target, packages to zip, and uploads as a draft GitHub Release for manual submission to Partner Center.
+
+The repo uses git submodules — CI must checkout with `submodules: true`.
