@@ -112,8 +112,6 @@ Coverage is configured for `utils/**/*.ts` files. All pure utility functions in 
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/submit.yml`) triggers on `workflow_dispatch`. Builds with Node 20 + pnpm 10.30.2, creates a GitHub Release with the packaged zip, and publishes to Chrome Web Store via `PlasmoHQ/bpp`.
-
-Edge Add-ons submit workflow (`.github/workflows/submit-edge.yml`) also triggers on `workflow_dispatch`. Builds for `edge-mv3` target, packages to zip, and uploads as a draft GitHub Release for manual submission to Partner Center.
+Edge Add-ons submit workflow (`.github/workflows/submit-edge.yml`) triggers on `workflow_dispatch`. Builds for `edge-mv3` target, packages to zip, and uploads as a draft GitHub Release for manual submission to Partner Center.
 
 The repo uses git submodules — CI must checkout with `submodules: true`.
