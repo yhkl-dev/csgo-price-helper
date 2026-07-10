@@ -1,0 +1,38 @@
+name: Submit to Edge Add-ons
+
+on:
+  workflow_dispatch:
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build for Edge
+        run: pnpm build:edge
+
+      - name: Package for Edge
+        run: pnpm package:edge
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/edge-mv3-prod.zip
+          tag_name: edge-v${{ github.run_number }}
+          draft: true
